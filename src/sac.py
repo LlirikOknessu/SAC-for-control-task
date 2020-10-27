@@ -13,8 +13,8 @@ class Actor(Model):
     def __init__(self, action_dim):
         super().__init__()
         self.action_dim = action_dim
-        self.dense1_layer = layers.Dense(64, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(32, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(32, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(64, activation=tf.nn.relu)
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
@@ -45,6 +45,7 @@ class Actor(Model):
         log_pi = log_pi_ - tf.reduce_sum(tf.math.log(1 - action**2 + EPSILON), axis=1,
                                          keepdims=True)
 
+        action = 5 * action + 5
         return action, log_pi
 
     @property
@@ -58,7 +59,7 @@ class Critic(Model):
 
     def __init__(self):
         super().__init__()
-        self.dense1_layer = layers.Dense(64, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(32, activation=tf.nn.relu)
         self.dense2_layer = layers.Dense(32, activation=tf.nn.relu)
         self.output_layer = layers.Dense(1)
 
