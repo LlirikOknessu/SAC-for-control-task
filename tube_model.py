@@ -98,8 +98,13 @@ if __name__ == '__main__':
             # Execute action, observe next state and reward
             connector_to_model.step(action)
             next_state, metric, done = connector_to_model.receive()
+
             y_true = next_state[1]
-            reward = 1 / ((args.y_target - y_true)**2)
+            #FIXME fix reward for cases, where y_target is small
+            if y_true < args.y_target:
+                reward = args.y_target - y_true
+            else:
+                reward = 2.4 * y_true - 2.88
 
             episode_reward += reward
 
