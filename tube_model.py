@@ -107,7 +107,7 @@ if __name__ == '__main__':
             #FIXME fix reward for cases, where y_target is small
             reward = 1.26 * math.exp(-5 * (args.y_target - y_true) ** 2) - 0.63
 
-            episode_reward += reward
+            episode_reward += 2 * reward
 
             # Set end to 0 if the episode ends otherwise make it 1
             # although the meaning is opposite but it is just easier to mutiply
@@ -161,13 +161,14 @@ if __name__ == '__main__':
                     sac.update_weights()
 
         if episode % 1 == 0:
-            sac.policy.save(args.model_path + args.model_name + '/policy.h5')
-            sac.q1.save(args.model_path + args.model_name + '/q1.h5')
-            sac.q2.save(args.model_path + args.model_name + '/q2.h5')
-            sac.target_q1.save(args.model_path + args.model_name + '/target_q1.h5')
-            sac.target_q2.save(args.model_path + args.model_name + '/target_q2.h5')
-            Path('alpha_value.txt').open("w").write(sac.alpha.value())
-            with open('alpha_optimizer', 'wb') as f:
+            sac.policy.save_weights(args.model_path + args.model_name + '/policy.ckpt')
+            sac.q1.save_weights(args.model_path + args.model_name + '/q1.ckpt')
+            sac.q2.save_weights(args.model_path + args.model_name + '/q2.ckpt')
+            sac.target_q1.save_weights(args.model_path + args.model_name + '/target_q1.ckpt')
+            sac.target_q2.save_weights(args.model_path + args.model_name + '/target_q2.ckpt')
+            with open('alpha_value.txt', 'w') as f:
+                f.write(str(float(sac.alpha.value())))
+            with open('alpha_optimizer.pickle', 'wb') as f:
                 pickle.dump(sac.alpha_optimizer, f)
 
 
