@@ -3,7 +3,10 @@ import argparse
 import logging
 import numpy as np
 from datetime import datetime
+from pathlib import Path
 import tensorflow as tf
+import math
+import pickle
 
 from src.sac import SoftActorCritic
 from src.replay_buffer import ReplayBuffer
@@ -27,24 +30,24 @@ parser.add_argument('--render', type=bool, default=False,
                     help='set gym environment to render display')
 parser.add_argument('--verbose', type=bool, default=False,
                     help='log execution details')
-parser.add_argument('--batch_size', type=int, default=64,
+parser.add_argument('--batch_size', type=int, default=128,
                     help='minibatch sample size for training')
 parser.add_argument('--epochs', type=int, default=5,
                     help='number of epochs to run backprop in an episode')
-parser.add_argument('--start_steps', type=int, default=10,
+parser.add_argument('--start_steps', type=int, default=15,
                     help='number of global steps before random exploration ends')
-parser.add_argument('--model_path', type=str, default='../data/models/',
+parser.add_argument('--model_path', type=str, default='data\\models\\',
                     help='path to save model')
 parser.add_argument('--model_name', type=str,
-                    default=f'{str(datetime.utcnow().date())}-{str(datetime.utcnow().time())}',
+                    default='first_try',
                     help='name of the saved model')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='discount factor for future rewards')
-parser.add_argument('--polyak', type=float, default=0.995,
+parser.add_argument('--polyak', type=float, default=0.005,
                     help='coefficient for polyak averaging of Q network weights')
 parser.add_argument('--learning_rate', type=float, default=0.0003,
                     help='learning rate')
-parser.add_argument('--model_address', '-md', default=('192.168.0.122', 5000))
+parser.add_argument('--model_address', '-md', default=('192.168.0.123', 5000))
 parser.add_argument('--model_observation', '-mo', default=3)
 parser.add_argument('--model_action_space', '-mas', default=1)
 parser.add_argument('--y_target', '-yt', default=1.2)
@@ -77,6 +80,7 @@ if __name__ == '__main__':
     global_step = 1
     episode = 1
     episode_rewards = []
+    final_metrics = []
     while True:
 
         # Observe state
@@ -101,10 +105,7 @@ if __name__ == '__main__':
 
             y_true = next_state[1]
             #FIXME fix reward for cases, where y_target is small
-            if y_true < args.y_target:
-                reward = args.y_target - y_true
-            else:
-                reward = 2.4 * y_true - 2.88
+            reward = 1.26 * math.exp(-5 * (args.y_target - y_true) ** 2) - 0.63
 
             episode_reward += reward
 
@@ -160,15 +161,26 @@ if __name__ == '__main__':
                     sac.update_weights()
 
         if episode % 1 == 0:
-            sac.policy.save_weights(args.model_path + args.model_name + '/model')
+            sac.policy.save(args.model_path + args.model_name + '/policy.h5')
+            sac.q1.save(args.model_path + args.model_name + '/q1.h5')
+            sac.q2.save(args.model_path + args.model_name + '/q2.h5')
+            sac.target_q1.save(args.model_path + args.model_name + '/target_q1.h5')
+            sac.target_q2.save(args.model_path + args.model_name + '/target_q2.h5')
+            Path('alpha_value.txt').open("w").write(sac.alpha.value())
+            with open('alpha_optimizer', 'wb') as f:
+                pickle.dump(sac.alpha_optimizer, f)
+
 
         episode_rewards.append(episode_reward)
+        final_metrics.append(current_metric)
         episode += 1
         avg_episode_reward = sum(episode_rewards[-100:]) / len(episode_rewards[-100:])
+        avg_final_metric = sum(final_metrics[-100:]) / len(final_metrics[-100:])
 
         print(f"Episode {episode} reward: {episode_reward}")
         print(f"{episode} Average episode reward: {avg_episode_reward}")
-        print(f'Final value of metric {current_metric}')
+        print(f'Episode {episode} final value of metric {current_metric}')
+        print(f'{episode} Average final value of metric {avg_final_metric}')
         with writer.as_default():
             tf.summary.scalar("episode_reward", episode_reward, episode)
             tf.summary.scalar("avg_episode_reward", avg_episode_reward, episode)
