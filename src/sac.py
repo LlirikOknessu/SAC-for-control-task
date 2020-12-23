@@ -13,8 +13,9 @@ class Actor(Model):
     def __init__(self, action_dim):
         super().__init__()
         self.action_dim = action_dim
-        self.dense1_layer = layers.Dense(32, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(64, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(128, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(128, activation=tf.nn.relu)
+        self.dense3_layer = layers.Dense(8, activation=tf.nn.relu)
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
@@ -51,7 +52,7 @@ class Actor(Model):
     @property
     def trainable_variables(self):
         return self.dense1_layer.trainable_variables + \
-                self.dense1_layer.trainable_variables + \
+                self.dense2_layer.trainable_variables + \
                 self.mean_layer.trainable_variables + \
                 self.stdev_layer.trainable_variables
 
@@ -59,8 +60,8 @@ class Critic(Model):
 
     def __init__(self):
         super().__init__()
-        self.dense1_layer = layers.Dense(32, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(32, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(128, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(128, activation=tf.nn.relu)
         self.output_layer = layers.Dense(1)
 
     def call(self, state, action):
@@ -239,11 +240,10 @@ class SoftActorCritic:
         return critic1_loss, critic2_loss, actor_loss, alpha_loss
 
     def update_weights(self):
-
         for theta_target, theta in zip(self.target_q1.trainable_variables,
                                        self.q1.trainable_variables):
-            theta_target = self.polyak * theta_target + (1 - self.polyak) * theta
+            theta_target.assign(self.polyak * theta + (1 - self.polyak) * theta_target)
 
         for theta_target, theta in zip(self.target_q2.trainable_variables,
                                        self.q2.trainable_variables):
-            theta_target = self.polyak * theta_target + (1 - self.polyak) * theta
+            theta_target.assign(self.polyak * theta + (1 - self.polyak) * theta_target)
