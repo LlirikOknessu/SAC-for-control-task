@@ -4,6 +4,7 @@ import logging
 import numpy as np
 from datetime import datetime
 import tensorflow as tf
+import math
 
 from src.sac import SoftActorCritic
 from src.replay_buffer import ReplayBuffer
@@ -13,7 +14,7 @@ from src.connector import Connector
 def random_float(low, high):
     return random.random()*(high-low) + low
 
-
+EPSILON = 1e-7
 tf.keras.backend.set_floatx('float64')
 
 logging.basicConfig(level='INFO')
@@ -29,7 +30,7 @@ parser.add_argument('--verbose', type=bool, default=False,
                     help='log execution details')
 parser.add_argument('--batch_size', type=int, default=64,
                     help='minibatch sample size for training')
-parser.add_argument('--epochs', type=int, default=5,
+parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs to run backprop in an episode')
 parser.add_argument('--start_steps', type=int, default=10,
                     help='number of global steps before random exploration ends')
@@ -40,12 +41,12 @@ parser.add_argument('--model_name', type=str,
                     help='name of the saved model')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='discount factor for future rewards')
-parser.add_argument('--polyak', type=float, default=0.995,
+parser.add_argument('--polyak', type=float, default=0.005,
                     help='coefficient for polyak averaging of Q network weights')
 parser.add_argument('--learning_rate', type=float, default=0.0003,
                     help='learning rate')
 parser.add_argument('--model_address', '-md', default=('192.168.0.122', 5000))
-parser.add_argument('--model_observation', '-mo', default=3)
+parser.add_argument('--model_observation', '-mo', default=4)
 parser.add_argument('--model_action_space', '-mas', default=1)
 parser.add_argument('--y_target', '-yt', default=1.2)
 parser.add_argument('--discretization_step', '-ds', default=0.1)
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     while True:
 
         # Observe state
-        current_state = [0.0, 0.0, 0.0]
+        current_state = [0.0, 0.0, 0.0, 0.0]
 
         step = 1
         episode_reward = 0
@@ -97,14 +98,15 @@ if __name__ == '__main__':
 
             # Execute action, observe next state and reward
             connector_to_model.step(action)
-            next_state, metric, done = connector_to_model.receive()
+            next_state, metric, y_target, done = connector_to_model.receive()
 
             y_true = next_state[1]
             #FIXME fix reward for cases, where y_target is small
-            if y_true < args.y_target:
-                reward = args.y_target - y_true
-            else:
-                reward = 2.4 * y_true - 2.88
+            #if y_true > args.y_target:
+                #reward = - (2.4 * y_true - 2.88) ** 4
+            reward = 1.26 * math.exp(-5 * (y_target - y_true)**2) - 0.63
+            #else:
+                #reward = - (args.y_target - y_true) ** 4
 
             episode_reward += reward
 
@@ -169,6 +171,7 @@ if __name__ == '__main__':
         print(f"Episode {episode} reward: {episode_reward}")
         print(f"{episode} Average episode reward: {avg_episode_reward}")
         print(f'Final value of metric {current_metric}')
+        print(f'Target {y_target}')
         with writer.as_default():
             tf.summary.scalar("episode_reward", episode_reward, episode)
             tf.summary.scalar("avg_episode_reward", avg_episode_reward, episode)

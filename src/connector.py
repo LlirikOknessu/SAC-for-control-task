@@ -10,10 +10,10 @@ class Connector:
         self.connection, self.client_address = self.socket.accept()
 
     def receive(self):
-        data = self.connection.recv(40)
-        i, l, v, metric, done = struct.unpack('ddddd', data)
-        state = [i, l, v]
-        return state, metric, int(done)
+        data = self.connection.recv(48)
+        i, l, v, metric, done, y_target = struct.unpack('dddddd', data)
+        state = [i, l, v, y_target]
+        return state, metric, y_target, int(done)
 
     def step(self, action):
         self.connection.send(struct.pack('d', float(action)))
