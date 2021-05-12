@@ -3,6 +3,7 @@ import tensorflow_probability as tfp
 from tensorflow.keras import layers
 from tensorflow.keras import Model
 import numpy as np
+from pathlib import Path
 
 tf.keras.backend.set_floatx('float64')
 
@@ -13,8 +14,8 @@ class Actor(Model):
     def __init__(self, action_dim):
         super().__init__()
         self.action_dim = action_dim
-        self.dense1_layer = layers.Dense(128, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(128, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(256, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
         self.dense3_layer = layers.Dense(8, activation=tf.nn.relu)
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
@@ -60,12 +61,11 @@ class Critic(Model):
 
     def __init__(self):
         super().__init__()
-        self.dense1_layer = layers.Dense(128, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(128, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(256, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
         self.output_layer = layers.Dense(1)
 
-    def call(self, state, action):
-        state_action = tf.concat([state, action], axis=1)
+    def call(self, state_action):
         a1 = self.dense1_layer(state_action)
         a2 = self.dense2_layer(a1)
         q = self.output_layer(a2)
@@ -80,7 +80,7 @@ class Critic(Model):
 
 class SoftActorCritic:
 
-    def __init__(self, action_dim, writer, epoch_step=1, learning_rate=0.0003,
+    def __init__(self, action_dim, epoch_step=1, learning_rate=0.0003,
                  alpha=0.2, gamma=0.99,
                 polyak=0.995):
         self.policy = Actor(action_dim)
@@ -89,7 +89,6 @@ class SoftActorCritic:
         self.target_q1 = Critic()
         self.target_q2 = Critic()
 
-        self.writer = writer
         self.epoch_step = epoch_step
 
         self.alpha = tf.Variable(0.0, dtype=tf.float64)
@@ -113,14 +112,16 @@ class SoftActorCritic:
 
         with tf.GradientTape() as tape1:
             # Get Q value estimates, action used here is from the replay buffer
-            q1 = self.q1(current_states, actions)
+            state_action = tf.concat([current_states, actions], axis=1)
+            q1 = self.q1(state_action)
 
             # Sample actions from the policy for next states
             pi_a, log_pi_a = self.policy(next_states)
 
             # Get Q value estimates from target Q network
-            q1_target = self.target_q1(next_states, pi_a)
-            q2_target = self.target_q2(next_states, pi_a)
+            next_state_action = tf.concat([next_states, pi_a], axis=1)
+            q1_target = self.target_q1(next_state_action)
+            q2_target = self.target_q2(next_state_action)
 
             # Apply the clipped double Q trick
             # Get the minimum Q value of the 2 target networks
@@ -134,14 +135,16 @@ class SoftActorCritic:
 
         with tf.GradientTape() as tape2:
             # Get Q value estimates, action used here is from the replay buffer
-            q2 = self.q2(current_states, actions)
+            state_action = tf.concat([current_states, actions], axis=1)
+            q2 = self.q2(state_action)
 
             # Sample actions from the policy for next states
             pi_a, log_pi_a = self.policy(next_states)
 
             # Get Q value estimates from target Q network
-            q1_target = self.target_q1(next_states, pi_a)
-            q2_target = self.target_q2(next_states, pi_a)
+            next_state_action = tf.concat([next_states, pi_a], axis=1)
+            q1_target = self.target_q1(next_state_action)
+            q2_target = self.target_q2(next_state_action)
 
             # Apply the clipped double Q trick
             # Get the minimum Q value of the 2 target networks
@@ -161,14 +164,6 @@ class SoftActorCritic:
         self.critic2_optimizer.apply_gradients(zip(grads2,
                                                    self.q2.trainable_variables))
 
-        with self.writer.as_default():
-            for grad, var in zip(grads1, self.q1.trainable_variables):
-                tf.summary.histogram(f"grad-{var.name}", grad, self.epoch_step)
-                tf.summary.histogram(f"var-{var.name}", var, self.epoch_step)
-            for grad, var in zip(grads2, self.q2.trainable_variables):
-                tf.summary.histogram(f"grad-{var.name}", grad, self.epoch_step)
-                tf.summary.histogram(f"var-{var.name}", var, self.epoch_step)
-
         return critic1_loss, critic2_loss
 
     def update_policy_network(self, current_states):
@@ -177,8 +172,9 @@ class SoftActorCritic:
             pi_a, log_pi_a = self.policy(current_states)
 
             # Get Q value estimates from target Q network
-            q1 = self.q1(current_states, pi_a)
-            q2 = self.q2(current_states, pi_a)
+            state_action = tf.concat([current_states, pi_a], axis=1)
+            q1 = self.q1(state_action)
+            q2 = self.q2(state_action)
 
             # Apply the clipped double Q trick
             # Get the minimum Q value of the 2 target networks
@@ -191,11 +187,6 @@ class SoftActorCritic:
         variables = self.policy.trainable_variables
         grads = tape.gradient(actor_loss, variables)
         self.actor_optimizer.apply_gradients(zip(grads, variables))
-
-        with self.writer.as_default():
-            for grad, var in zip(grads, variables):
-                tf.summary.histogram(f"grad-{var.name}", grad, self.epoch_step)
-                tf.summary.histogram(f"var-{var.name}", var, self.epoch_step)
 
         return actor_loss
 
@@ -212,11 +203,6 @@ class SoftActorCritic:
         grads = tape.gradient(alpha_loss, variables)
         self.alpha_optimizer.apply_gradients(zip(grads, variables))
 
-        with self.writer.as_default():
-            for grad, var in zip(grads, variables):
-                tf.summary.histogram(f"grad-{var.name}", grad, self.epoch_step)
-                tf.summary.histogram(f"var-{var.name}", var, self.epoch_step)
-
         return alpha_loss
 
 
@@ -231,11 +217,11 @@ class SoftActorCritic:
         alpha_loss = self.update_alpha(current_states)
 
         # Update target Q network weights
-        #self.update_weights()
+        self.update_weights()
 
-        #if self.epoch_step % 10 == 0:
-        #    self.alpha = max(0.1, 0.9**(1+self.epoch_step/10000))
-        #    print("alpha: ", self.alpha, 1+self.epoch_step/10000)
+        # if self.epoch_step % 10 == 0:
+        #     self.alpha = max(0.1, 0.9**(1+self.epoch_step/10000))
+        #     print("alpha: ", self.alpha, 1+self.epoch_step/10000)
 
         return critic1_loss, critic2_loss, actor_loss, alpha_loss
 
@@ -247,3 +233,22 @@ class SoftActorCritic:
         for theta_target, theta in zip(self.target_q2.trainable_variables,
                                        self.q2.trainable_variables):
             theta_target.assign(self.polyak * theta + (1 - self.polyak) * theta_target)
+
+    def save_model(self, model_folder: Path, model_name: str):
+        model_path = model_folder / model_name
+        model_path.mkdir(parents=True, exist_ok=True)
+        tf.saved_model.save(self.policy, str(model_path / 'policy.h5'))
+        tf.saved_model.save(self.q1, str(model_path / 'q1.h5'))
+        tf.saved_model.save(self.q2, str(model_path / 'q2.h5'))
+        tf.saved_model.save(self.target_q1, str(model_path / 'target_q1.h5'))
+        tf.saved_model.save(self.target_q2, str(model_path / 'target_q2.h5'))
+        tf.saved_model.save(self.alpha, str(model_path / 'alpha.h5'))
+
+    def load_model(self, model_folder: Path, model_name):
+        model_path = model_folder / model_name
+        self.policy = tf.saved_model.load(str(model_path / 'policy.h5'))
+        self.q1 = tf.saved_model.load(str(model_path / 'q1.h5'))
+        self.q2 = tf.saved_model.load(str(model_path / 'q2.h5'))
+        self.target_q1 = tf.saved_model.load(str(model_path / 'target_q1.h5'))
+        self.target_q2 = tf.saved_model.load(str(model_path / 'target_q2.h5'))
+        self.alpha = tf.saved_model.load(str(model_path / 'alpha.h5'))

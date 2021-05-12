@@ -2,6 +2,7 @@ import argparse
 import logging
 from datetime import datetime
 import numpy as np
+from pathlib import Path
 import math
 
 from src.sac import Actor, SoftActorCritic
@@ -22,9 +23,9 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', type=str, default='../data/models/',
                         help='path to save model')
     parser.add_argument('--model_name', type=str,
-                        default=f'main',
+                        default=f'test',
                         help='name of the saved model')
-    parser.add_argument('--model_address', '-md', default=('192.168.0.122', 5000))
+    parser.add_argument('--model_address', '-md', default=('10.24.1.201', 5000))
     parser.add_argument('--model_observation', '-mo', default=4)
     parser.add_argument('--model_action_space', '-mas', default=1)
     parser.add_argument('--y_target', '-yt', default=1.2)
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     action_space = 1
     sac = SoftActorCritic(action_space, writer=None)
 
-    sac.policy.load_weights(args.model_path + args.model_name + '/model')
+    sac.load_model(Path(args.model_path), args.model_name)
     # Instantiate the environment.
     connector_to_model = Connector(args.model_address)
 
@@ -53,9 +54,6 @@ if __name__ == '__main__':
             next_state, metric, y_target, done = connector_to_model.receive()
 
             y_true = next_state[1]
-            # FIXME fix reward for cases, where y_target is small
-            # if y_true > args.y_target:
-            # reward = - (2.4 * y_true - 2.88) ** 4
             reward = 1.26 * math.exp(-5 * (y_target - y_true) ** 2) - 0.63
 
             episode_reward += reward
