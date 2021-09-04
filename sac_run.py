@@ -52,7 +52,7 @@ parser.add_argument('--start_steps', type=int, default=0,
 parser.add_argument('--model_path', type=str, default='data/models/',
                     help='path to save model')
 parser.add_argument('--model_name', type=str,
-                    default=f'learning_on_stand_new_reward_dynamic',
+                    default=f'model_v5',
                     help='name of the saved model')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='discount factor for future rewards')

@@ -7,7 +7,7 @@ from pathlib import Path
 
 tf.keras.backend.set_floatx('float64')
 
-EPSILON = 1e-16
+EPSILON = 1e-6
 
 class Actor(Model):
 
@@ -16,7 +16,6 @@ class Actor(Model):
         self.action_dim = action_dim
         self.dense1_layer = layers.Dense(256, activation=tf.nn.relu)
         self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
-        self.dense3_layer = layers.Dense(8, activation=tf.nn.relu)
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
@@ -74,8 +73,8 @@ class Critic(Model):
     @property
     def trainable_variables(self):
         return self.dense1_layer.trainable_variables + \
-                self.output_layer.trainable_variables + \
-                self.dense2_layer.trainable_variables
+               self.dense2_layer.trainable_variables + \
+               self.output_layer.trainable_variables
 
 
 class SoftActorCritic:
@@ -91,7 +90,7 @@ class SoftActorCritic:
 
         self.epoch_step = epoch_step
 
-        self.alpha = tf.Variable(0.0, dtype=tf.float64)
+        self.alpha = tf.Variable(0.9, dtype=tf.float64)
         self.target_entropy = -tf.constant(action_dim, dtype=tf.float64)
         self.gamma = gamma
         self.polyak = polyak
@@ -196,12 +195,13 @@ class SoftActorCritic:
             # Sample actions from the policy for current states
             pi_a, log_pi_a = self.policy(current_states)
 
-            alpha_loss = tf.reduce_mean( - self.alpha*(log_pi_a +
-                                                       self.target_entropy))
+            alpha_loss = tf.reduce_mean(- self.alpha*(log_pi_a + self.target_entropy))
 
         variables = [self.alpha]
         grads = tape.gradient(alpha_loss, variables)
         self.alpha_optimizer.apply_gradients(zip(grads, variables))
+        if self.alpha.value() <= 0:
+            self.alpha.assign(0)
 
         return alpha_loss
 
@@ -219,9 +219,9 @@ class SoftActorCritic:
         # Update target Q network weights
         self.update_weights()
 
-        # if self.epoch_step % 10 == 0:
+        if self.epoch_step % 30 == 0:
         #     self.alpha = max(0.1, 0.9**(1+self.epoch_step/10000))
-        #     print("alpha: ", self.alpha, 1+self.epoch_step/10000)
+            print("alpha: ", self.alpha, 1+self.epoch_step/10000)
 
         return critic1_loss, critic2_loss, actor_loss, alpha_loss
 
