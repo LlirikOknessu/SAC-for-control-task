@@ -48,7 +48,7 @@ parser.add_argument('--polyak', type=float, default=0.005,
                     help='coefficient for polyak averaging of Q network weights')
 parser.add_argument('--learning_rate', type=float, default=0.008,
                     help='learning rate')
-parser.add_argument('--model_address', '-md', default=('10.24.1.206', 5000))
+parser.add_argument('--model_address', '-md', default=('10.24.1.206', 5001))
 parser.add_argument('--model_observation', '-mo', default=5)
 parser.add_argument('--model_action_space', '-mas', default=1)
 parser.add_argument('--y_target', '-yt', default=1.2)
