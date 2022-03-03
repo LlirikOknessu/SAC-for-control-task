@@ -1,5 +1,5 @@
 import numpy as np
-from sac import Actor
+from src.sac.sac import Actor
 import tensorflow as tf
 
 tf.random.set_seed(0)

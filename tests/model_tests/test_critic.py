@@ -1,5 +1,5 @@
 import numpy as np
-from sac import Critic
+from src.sac.sac import Critic
 import tensorflow as tf
 
 tf.random.set_seed(0)
