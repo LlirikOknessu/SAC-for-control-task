@@ -4,14 +4,13 @@ import logging
 import struct
 
 import numpy as np
-from datetime import datetime
 import tensorflow as tf
 import math
 from pathlib import Path
 
 from src.sac import SoftActorCritic
-from src.replay_buffer import ReplayBuffer
-from src.connector import Connector
+from src.libs.replay_buffer import ReplayBuffer
+from src.libs.connector import Connector
 
 
 def random_float(low, high):
