@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 import numpy as np
 
-from sac import Actor
+from src.sac.sac import Actor
 
 logging.basicConfig(level='INFO')
 
@@ -26,7 +26,6 @@ parser.add_argument('--model_name', type=str,
 while True:
 
     args = parser.parse_args()
-
 
     # Instantiate the environment.
     env = gym.make(args.env_name)
@@ -56,7 +55,7 @@ while True:
         # Execute action, observe next state and reward
         next_state, reward, done, _ = env.step(action)
 
-        episode_reward +=  reward
+        episode_reward += reward
 
         # Update current state
         current_state = next_state

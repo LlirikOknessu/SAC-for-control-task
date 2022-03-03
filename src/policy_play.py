@@ -1,12 +1,10 @@
 import argparse
 import logging
-from datetime import datetime
-import numpy as np
 from pathlib import Path
 import math
 
-from src.sac import Actor, SoftActorCritic
-from src.connector import Connector
+from src.sac.sac import SoftActorCritic
+from src.libs.connector import Connector
 
 if __name__ == '__main__':
     logging.basicConfig(level='INFO')

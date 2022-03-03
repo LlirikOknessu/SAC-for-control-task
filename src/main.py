@@ -5,8 +5,8 @@ import numpy as np
 from datetime import datetime
 import tensorflow as tf
 
-from sac import SoftActorCritic
-from replay_buffer import ReplayBuffer
+from src.sac.sac import SoftActorCritic
+from src.libs.replay_buffer import ReplayBuffer
 
 tf.keras.backend.set_floatx('float64')
 
@@ -15,15 +15,15 @@ logging.basicConfig(level='INFO')
 parser = argparse.ArgumentParser(description='SAC')
 parser.add_argument('--seed', type=int, default=42,
                     help='random seed')
-parser.add_argument('--env_name', type=str, default='MountainCarContinuous-v0',
+parser.add_argument('--env_name', type=str, default='LunarLanderContinuous-v2',
                     help='name of the gym environment with version')
 parser.add_argument('--render', type=bool, default=False,
                     help='set gym environment to render display')
 parser.add_argument('--verbose', type=bool, default=False,
                     help='log execution details')
-parser.add_argument('--batch_size', type=int, default=128,
+parser.add_argument('--batch_size', type=int, default=64,
                     help='minibatch sample size for training')
-parser.add_argument('--epochs', type=int, default=25,
+parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs to run backprop in an episode')
 parser.add_argument('--start_steps', type=int, default=10,
                     help='number of global steps before random exploration ends')
@@ -34,17 +34,15 @@ parser.add_argument('--model_name', type=str,
                     help='name of the saved model')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='discount factor for future rewards')
-parser.add_argument('--polyak', type=float, default=0.995,
+parser.add_argument('--polyak', type=float, default=0.005,
                     help='coefficient for polyak averaging of Q network weights')
 parser.add_argument('--learning_rate', type=float, default=0.0015,
                     help='learning rate')
 
-
-
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    #tf.random.set_seed(args.seed)
+    # tf.random.set_seed(args.seed)
     writer = tf.summary.create_file_writer(args.model_path + args.model_name + '/summary')
 
     # Instantiate the environment.
@@ -62,8 +60,7 @@ if __name__ == '__main__':
                           learning_rate=args.learning_rate,
                           gamma=args.gamma, polyak=args.polyak)
 
-    #sac.policy.load_weights(args.model_path + '/2020-05-30-19:03:13.833421/model')
-
+    # sac.policy.load_weights(args.model_path + '/2020-05-30-19:03:13.833421/model')
 
     # Repeat until convergence
     global_step = 1
@@ -120,8 +117,6 @@ if __name__ == '__main__':
             step += 1
             global_step += 1
 
-
-
         if (step % 1 == 0) and (global_step > args.start_steps):
             for epoch in range(args.epochs):
 
@@ -130,11 +125,11 @@ if __name__ == '__main__':
 
                 # Perform single step of gradient descent on Q and policy
                 # network
-                critic1_loss, critic2_loss, actor_loss, alpha_loss = sac.train(current_states, actions, rewards, next_states, ends)
+                critic1_loss, critic2_loss, actor_loss, alpha_loss = sac.train(current_states, actions, rewards,
+                                                                               next_states, ends)
                 if args.verbose:
                     print(episode, global_step, epoch, critic1_loss.numpy(),
                           critic2_loss.numpy(), actor_loss.numpy(), episode_reward)
-
 
                 with writer.as_default():
                     tf.summary.scalar("actor_loss", actor_loss, sac.epoch_step)
@@ -147,13 +142,12 @@ if __name__ == '__main__':
                 if sac.epoch_step % 1 == 0:
                     sac.update_weights()
 
-
         if episode % 1 == 0:
             sac.policy.save_weights(args.model_path + args.model_name + '/model')
 
         episode_rewards.append(episode_reward)
         episode += 1
-        avg_episode_reward = sum(episode_rewards[-100:])/len(episode_rewards[-100:])
+        avg_episode_reward = sum(episode_rewards[-100:]) / len(episode_rewards[-100:])
 
         print(f"Episode {episode} reward: {episode_reward}")
         print(f"{episode} Average episode reward: {avg_episode_reward}")

@@ -1,4 +1,4 @@
-from connector import RealConnector
+from src.libs.connector import RealConnector
 import pandas as pd
 
 MODEL_ADDRESS = ('10.24.1.206', 5000)
@@ -19,15 +19,14 @@ action = 4
 connector_to_model = RealConnector(MODEL_ADDRESS)
 
 while True:
-    # try:
-    #     action = actions[count]
-    #     action = abs(action - 1)
-    #     if count % 100 == 0:
-    #         print(action)
-    # except IndexError:
-    #     break
-    # var = input()
-    action = input('Set voltage: ')
+    try:
+        action = actions[count]
+        action = abs(action - 1)
+        if count % 100 == 0:
+            print(action)
+    except IndexError:
+        break
+
     connector_to_model.step(action, 0, Y_TARGET)
     next_state, metric, done = connector_to_model.receive(Y_TARGET)
 
