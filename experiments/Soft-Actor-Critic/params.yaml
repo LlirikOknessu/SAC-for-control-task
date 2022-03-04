@@ -1,0 +1,13 @@
+soft_actor_critic:
+  ADDRESS: '10.24.1.206' # IP address of model
+  PORT: 5000 # port of model IP address
+  VERBOSE: 0 # log execution details
+  DISCRETEZATION_STEP:  0.1 # discretization step of model simulation
+  SCALE: 1 # Reward scale (if scale = 1, reward doesn't change)
+  NN_PARAMETERS: # Neural Network parameters of SAC model
+    BATCH_SIZE: 256 # batch size of train data in one step
+    EPOCHS: 40 # number of epochs to run backprop in an episode
+    START_STEPS: 10 # number of global steps before random exploration ends
+    GAMMA: 0.99 # discount factor for future rewards
+    POLYAK: 0.005 # coefficient for polyak averaging of Q network weights
+    LEARNING_RATE: 0.008 # learning rate of all SAC model NN's

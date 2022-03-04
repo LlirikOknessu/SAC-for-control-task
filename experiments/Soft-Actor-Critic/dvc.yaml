@@ -1,0 +1,22 @@
+stages:
+  sac_model_learning:
+    # Start training Soft Actor-Critic on stand math model
+    #     dvc input:
+    #         -
+    #     dvc output:
+    #         data/models/simulated/<model_name>/policy.h5 - structure and weights of policy function
+    #         data/models/simulated/<model_name>/q1.h5 - structure and weights of first estimation Q function
+    #         data/models/simulated/<model_name>/q2.h5 - structure and weights of second estimation Q function
+    #         data/models/simulated/<model_name>/q1_target.h5 - structure and weights of first target estimation Q function
+    #         data/models/simulated/<model_name>/q2_target.h5 - structure and weights of second target estimation Q function
+    cmd: python model_scripts/sac_model_start.py -p params.yaml -mp data/models/simulated/ -mn simulation_model_v0, -mo 5, ma 1
+    deps:
+      - model_scripts/sac_model_start.py
+      - ../../src/libs/utils.py
+      - ../../src/libs/connector.py
+      - ../../src/libs/replay_buffer.py
+      - ../../src/sac/sac.py
+    params:
+      - soft_actor_critic
+    outs:
+      - data/models/simulated/simulation_model_v0
