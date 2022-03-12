@@ -5,8 +5,8 @@ from connector import RealConnector
 import pandas as pd
 from pathlib import Path
 
-FOLDER = Path('../validation_data/model_stand_signal3/')
-OUTPUT_FOLDER = Path('../validation_data/plots3/')
+FOLDER = Path('../validation_data/model_stand_signal6/')
+OUTPUT_FOLDER = Path('../validation_data/plots6/')
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
@@ -14,7 +14,7 @@ OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 plt.style.use('seaborn-whitegrid')
 
 
-for file in FOLDER.glob('*.csv'):
+for file in FOLDER.glob('*_actor.csv'):
     df = pd.read_csv(file)
     actions = df['signal_value'].tolist()
     x_ax = [x / 10 for x in range(len(actions))]
@@ -36,7 +36,7 @@ for file in FOLDER.glob('*.csv'):
     ax2.set(ylabel='Angular velocity, V', xlabel='Seconds')
     ax2.legend()
 
-    output_filename = OUTPUT_FOLDER / f'{filename}_plot.jpg'
+    output_filename = OUTPUT_FOLDER / f'{filename}_actor_plot.jpg'
     fig.savefig(output_filename)
     plt.close(fig)
 

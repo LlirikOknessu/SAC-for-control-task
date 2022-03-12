@@ -5,6 +5,7 @@ import datetime
 
 class RealConnector:
     def __init__(self, address: tuple):
+        print('Start')
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind(address)
         self.socket.listen(1)
@@ -14,7 +15,7 @@ class RealConnector:
 
     def receive(self, y_target):
         try:
-            data = self.connection.recv(28)
+            data = self.connection.recv(24)
         except Exception:
             self.connection.close()
         i, l, v, metric, done, object_velocity = struct.unpack('ffffff', data)
@@ -33,9 +34,13 @@ class RealConnector:
         except Exception:
             self.connection.close()
 
+    def close(self):
+        self.connection.close()
+
 
 class Connector:
     def __init__(self, address: tuple):
+        print('Start')
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind(address)
         self.socket.listen(1)
@@ -47,10 +52,13 @@ class Connector:
         #print(data)
 
         i, l, v, metric, done, y_target, object_velocity = struct.unpack('ddddddd', data)
-        state = [i, l, v, object_velocity, y_target]
+        state = [i, l, v, object_velocity]
         #print(state)
         return state, metric, y_target, int(done)
 
     def step(self, action):
         #print(float(action))
         self.connection.send(struct.pack('d', float(action)))
+
+    def close(self):
+        self.connection.close()
