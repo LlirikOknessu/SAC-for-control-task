@@ -243,7 +243,7 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
     return learning
 
 
-def run_learning_on_stand(output_path: Path, rl_model: AbstractReinforcementLearningModel, buffer: ReplayBuffer,
+def run_learning(output_path: Path, rl_model: AbstractReinforcementLearningModel, buffer: ReplayBuffer,
                           additional_params: dict, general_params: dict, neural_network_params: dict,
                           learning_mode: str):
     # Repeat until convergence
