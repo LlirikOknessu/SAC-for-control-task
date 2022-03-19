@@ -3,7 +3,8 @@ import struct
 from numpy import random
 import datetime
 
-class RealConnector:
+
+class AbstractConnector:
     def __init__(self, address: tuple):
         print('Start')
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -12,6 +13,19 @@ class RealConnector:
         self.connection, self.client_address = self.socket.accept()
         print('End binding')
 
+    def receive(self, y_target):
+        pass
+
+    def step(self, action, flag, y_target):
+        pass
+
+    def close(self):
+        pass
+
+
+class RealConnector(AbstractConnector):
+    def __init__(self, address: tuple):
+        super().__init__(address)
 
     def receive(self, y_target):
         try:
@@ -22,12 +36,12 @@ class RealConnector:
         l = abs(l / 100)
         object_velocity = object_velocity / 100
         state = [i, l, v, object_velocity, y_target]
-        #state_to_output.append([*state, datetime.datetime.now()])
+        # state_to_output.append([*state, datetime.datetime.now()])
         # print(state)
         return state, metric, int(done)
 
     def step(self, action, flag, y_target):
-        #print('send ', float(action))
+        # print('send ', float(action))
         try:
             # print(action)
             self.connection.send(struct.pack('fff', float(action), float(flag), float(y_target)))
@@ -40,24 +54,19 @@ class RealConnector:
 
 class Connector:
     def __init__(self, address: tuple):
-        print('Start')
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind(address)
-        self.socket.listen(1)
-        self.connection, self.client_address = self.socket.accept()
-        print('End binding')
+        super().__init__(address)
 
     def receive(self):
         data = self.connection.recv(56)
-        #print(data)
+        # print(data)
 
         i, l, v, metric, done, y_target, object_velocity = struct.unpack('ddddddd', data)
         state = [i, l, v, object_velocity]
-        #print(state)
+        # print(state)
         return state, metric, y_target, int(done)
 
     def step(self, action):
-        #print(float(action))
+        # print(float(action))
         self.connection.send(struct.pack('d', float(action)))
 
     def close(self):

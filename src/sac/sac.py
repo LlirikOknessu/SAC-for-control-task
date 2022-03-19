@@ -7,6 +7,8 @@ from tensorflow.keras import layers
 from tensorflow.keras import Model
 import numpy as np
 from pathlib import Path
+from libs.rl import AbstractReinforcementLearningModel
+from libs.replay_buffer import ReplayBuffer
 
 tf.keras.backend.set_floatx('float64')
 
@@ -88,7 +90,7 @@ class Critic(Model):
                self.output_layer.trainable_variables
 
 
-class SoftActorCritic:
+class SoftActorCritic(AbstractReinforcementLearningModel):
 
     def __init__(self, action_dim, epoch_step=1, learning_rate=0.0003,
                  alpha=0.2, gamma=0.99,
@@ -246,6 +248,21 @@ class SoftActorCritic:
         self.critic1_optimizer = tf.keras.optimizers.Adam(lr)
         self.critic2_optimizer = tf.keras.optimizers.Adam(lr)
         self.alpha_optimizer = tf.keras.optimizers.Adam(lr)
+
+    def complex_training(self, buffer:, training_params: dict, verbose: bool = False):
+        print('Start training')
+        for epoch in range(training_params['epochs']):
+            # Randomly sample minibatch of transitions from replay buffer
+            current_states, actions, rewards, next_states, ends = buffer.fetch_sample(
+                num_samples=training_params['batch_size'])
+
+            # Perform single step of gradient descent on Q and policy network
+            critic1_loss, critic2_loss, actor_loss, alpha_loss = self.train(current_states, actions, rewards,
+                                                                            next_states, ends)
+            if verbose:
+                print(epoch, critic1_loss.numpy(), critic2_loss.numpy(), actor_loss.numpy())
+
+            self.epoch_step += 1
 
     def save_model(self, model_folder: Path, model_name: str):
         model_path = model_folder / model_name

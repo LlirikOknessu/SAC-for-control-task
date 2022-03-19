@@ -1,7 +1,5 @@
-import time
 import matplotlib.pyplot as plt
 
-from connector import RealConnector
 import pandas as pd
 from pathlib import Path
 
