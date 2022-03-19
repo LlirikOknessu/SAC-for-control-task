@@ -1,0 +1,12 @@
+stages:
+  run_sac_on_model:
+    ' Runs "Soft Actor-Critic" algorythm on math model'
+    cmd: python sac_run.py -mp data/models/simulated/ -ohd data/experiment_data/ -p params.yaml
+    deps:
+      - sac_run.py
+      - params.yaml
+    params:
+      - sac_params
+    outs:
+      - data/experiment_data/
+      - data/models/simulated/

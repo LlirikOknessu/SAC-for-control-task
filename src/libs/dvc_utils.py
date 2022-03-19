@@ -15,7 +15,7 @@ MOVING_AVERAGE_WINDOW = 100
 
 def parser_args_for_sac():
     parser = argparse.ArgumentParser(description='SAC')
-    parser.add_argument('--model_path', type=str, default='data/models/', required=True,
+    parser.add_argument('--model_path', '-mp', type=str, default='data/models/', required=True,
                         help='path to save model')
     parser.add_argument('--output_history_dir', '-ohd', type=str, default='data/experiment_data/', required=True,
                         help='path to save logs of learning')
