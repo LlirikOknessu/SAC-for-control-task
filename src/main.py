@@ -6,7 +6,7 @@ from datetime import datetime
 import tensorflow as tf
 
 from sac import SoftActorCritic
-from replay_buffer import ReplayBuffer
+from libs.replay_buffer import ReplayBuffer
 
 tf.keras.backend.set_floatx('float64')
 

@@ -1,6 +1,6 @@
 import time
 
-from connector import Connector
+from libs.connector import Connector
 import pandas as pd
 from pathlib import Path
 
@@ -11,7 +11,7 @@ signal_count = 0
 Y_TARGET = 0.71039850878084
 
 FOLDER = Path('../validation_data/stand_signal/')
-OUTPUT_FOLDER = Path('../validation_data/model_stand_signal3/')
+OUTPUT_FOLDER = Path('../validation_data/model_stand_signal6/')
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 
 connector_to_model = Connector(MODEL_ADDRESS)
@@ -26,7 +26,8 @@ for path in FOLDER.glob('*.csv'):
     action_out = []
     times = []
     signal = []
-    if len(actions) > 500:
+    next_state = []
+    if len(actions) < 500:
         while True:
             try:
                 action = actions[count]
@@ -58,10 +59,10 @@ for path in FOLDER.glob('*.csv'):
         df = df.assign(model_response=responses)
         df = df.assign(model_angular_velocity=angular_velocities)
 
-        df.to_csv(f'../validation_data/model_stand_signal3/model_signal_{signal_count}.csv', index=False)
+        df.to_csv(f'../validation_data/model_stand_signal6/model_signal_{signal_count}_actor.csv', index=False)
         signal_count += 1
 
-        for item in range(600):
+        for item in range(202):
             connector_to_model.step(0.1)
             next_state, metric, y_target, done = connector_to_model.receive()
 
@@ -70,6 +71,7 @@ for path in FOLDER.glob('*.csv'):
     angular_velocities.clear()
     actions.clear()
     action_out.clear()
-    next_state.clear()
+    if next_state:
+        next_state.clear()
 
 connector_to_model.close()

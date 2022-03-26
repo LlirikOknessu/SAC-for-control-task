@@ -1,4 +1,4 @@
-from connector import Connector
+from libs.connector import Connector
 import pandas as pd
 
 MODEL_ADDRESS = ('10.24.1.206', 5000)

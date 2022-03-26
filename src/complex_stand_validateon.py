@@ -1,6 +1,6 @@
 import time
 
-from connector import RealConnector
+from libs.connector import RealConnector
 import pandas as pd
 from pathlib import Path
 

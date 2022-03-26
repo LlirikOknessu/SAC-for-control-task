@@ -1,13 +1,23 @@
+import random
+
+import tensorflow
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tensorflow.keras import layers
 from tensorflow.keras import Model
 import numpy as np
 from pathlib import Path
+from src.libs.rl import AbstractReinforcementLearningModel
+from src.libs.replay_buffer import ReplayBuffer
 
 tf.keras.backend.set_floatx('float64')
 
 EPSILON = 1e-6
+INPUT_SIGNATURE = [tf.TensorSpec(shape=None, dtype=tf.float64),
+                   tf.TensorSpec(shape=None, dtype=tf.float64),
+                   tf.TensorSpec(shape=None, dtype=tf.float64),
+                   tf.TensorSpec(shape=None, dtype=tf.float64)]
+
 
 class Actor(Model):
 
@@ -19,6 +29,7 @@ class Actor(Model):
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
+    @tensorflow.function
     def call(self, state):
         # Get mean and standard deviation from the policy network
         a1 = self.dense1_layer(state)
@@ -43,7 +54,7 @@ class Actor(Model):
         log_pi_ = dist.log_prob(action_)
         # Change log probability to account for tanh squashing as mentioned in
         # Appendix C of the paper
-        log_pi = log_pi_ - tf.reduce_sum(tf.math.log(1 - action**2 + EPSILON), axis=1,
+        log_pi = log_pi_ - tf.reduce_sum(tf.math.log(1 - action ** 2 + EPSILON), axis=1,
                                          keepdims=True)
 
         action = 5 * action + 5
@@ -52,9 +63,10 @@ class Actor(Model):
     @property
     def trainable_variables(self):
         return self.dense1_layer.trainable_variables + \
-                self.dense2_layer.trainable_variables + \
-                self.mean_layer.trainable_variables + \
-                self.stdev_layer.trainable_variables
+               self.dense2_layer.trainable_variables + \
+               self.mean_layer.trainable_variables + \
+               self.stdev_layer.trainable_variables
+
 
 class Critic(Model):
 
@@ -64,6 +76,7 @@ class Critic(Model):
         self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
         self.output_layer = layers.Dense(1)
 
+    @tensorflow.function
     def call(self, state_action):
         a1 = self.dense1_layer(state_action)
         a2 = self.dense2_layer(a1)
@@ -77,11 +90,11 @@ class Critic(Model):
                self.output_layer.trainable_variables
 
 
-class SoftActorCritic:
+class SoftActorCritic(AbstractReinforcementLearningModel):
 
     def __init__(self, action_dim, epoch_step=1, learning_rate=0.0003,
                  alpha=0.2, gamma=0.99,
-                polyak=0.995):
+                 polyak=0.995):
         self.policy = Actor(action_dim)
         self.q1 = Critic()
         self.q2 = Critic()
@@ -100,12 +113,10 @@ class SoftActorCritic:
         self.critic2_optimizer = tf.keras.optimizers.Adam(learning_rate)
         self.alpha_optimizer = tf.keras.optimizers.Adam(learning_rate)
 
-
     def sample_action(self, current_state):
         current_state_ = np.array(current_state, ndmin=2)
         action, _ = self.policy(current_state_)
         return action[0]
-
 
     def update_q_network(self, current_states, actions, rewards, next_states, ends):
 
@@ -130,7 +141,7 @@ class SoftActorCritic:
             soft_q_target = min_q_target - self.alpha * log_pi_a
             y = tf.stop_gradient(rewards + self.gamma * ends * soft_q_target)
 
-            critic1_loss = tf.reduce_mean((q1 - y)**2)
+            critic1_loss = tf.reduce_mean((q1 - y) ** 2)
 
         with tf.GradientTape() as tape2:
             # Get Q value estimates, action used here is from the replay buffer
@@ -153,7 +164,7 @@ class SoftActorCritic:
             soft_q_target = min_q_target - self.alpha * log_pi_a
             y = tf.stop_gradient(rewards + self.gamma * ends * soft_q_target)
 
-            critic2_loss = tf.reduce_mean((q2 - y)**2)
+            critic2_loss = tf.reduce_mean((q2 - y) ** 2)
 
         grads1 = tape1.gradient(critic1_loss, self.q1.trainable_variables)
         self.critic1_optimizer.apply_gradients(zip(grads1,
@@ -189,22 +200,20 @@ class SoftActorCritic:
 
         return actor_loss
 
-
     def update_alpha(self, current_states):
         with tf.GradientTape() as tape:
             # Sample actions from the policy for current states
             pi_a, log_pi_a = self.policy(current_states)
 
-            alpha_loss = tf.reduce_mean(- self.alpha*(log_pi_a + self.target_entropy))
+            alpha_loss = tf.reduce_mean(- self.alpha * (log_pi_a + self.target_entropy))
 
         variables = [self.alpha]
         grads = tape.gradient(alpha_loss, variables)
         self.alpha_optimizer.apply_gradients(zip(grads, variables))
         if self.alpha.value() <= 0:
-            self.alpha.assign(0)
+            self.alpha.assign(EPSILON + random.uniform(0.0005, 0.1))
 
         return alpha_loss
-
 
     def train(self, current_states, actions, rewards, next_states, ends):
 
@@ -220,8 +229,8 @@ class SoftActorCritic:
         self.update_weights()
 
         if self.epoch_step % 30 == 0:
-        #     self.alpha = max(0.1, 0.9**(1+self.epoch_step/10000))
-            print("alpha: ", self.alpha, 1+self.epoch_step/10000)
+            #     self.alpha = max(0.1, 0.9**(1+self.epoch_step/10000))
+            print("alpha: ", self.alpha, 1 + self.epoch_step / 10000)
 
         return critic1_loss, critic2_loss, actor_loss, alpha_loss
 
@@ -233,6 +242,27 @@ class SoftActorCritic:
         for theta_target, theta in zip(self.target_q2.trainable_variables,
                                        self.q2.trainable_variables):
             theta_target.assign(self.polyak * theta + (1 - self.polyak) * theta_target)
+
+    def update_learning_rate(self, lr: float):
+        self.actor_optimizer = tf.keras.optimizers.Adam(lr)
+        self.critic1_optimizer = tf.keras.optimizers.Adam(lr)
+        self.critic2_optimizer = tf.keras.optimizers.Adam(lr)
+        self.alpha_optimizer = tf.keras.optimizers.Adam(lr)
+
+    def complex_training(self, buffer: ReplayBuffer, training_params: dict, verbose: bool = False):
+        print('Start training')
+        for epoch in range(training_params['epochs']):
+            # Randomly sample minibatch of transitions from replay buffer
+            current_states, actions, rewards, next_states, ends = buffer.fetch_sample(
+                num_samples=training_params['batch_size'])
+
+            # Perform single step of gradient descent on Q and policy network
+            critic1_loss, critic2_loss, actor_loss, alpha_loss = self.train(current_states, actions, rewards,
+                                                                            next_states, ends)
+            if verbose:
+                print(epoch, critic1_loss.numpy(), critic2_loss.numpy(), actor_loss.numpy())
+
+            self.epoch_step += 1
 
     def save_model(self, model_folder: Path, model_name: str):
         model_path = model_folder / model_name
