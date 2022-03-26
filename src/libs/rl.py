@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from src.libs.replay_buffer import ReplayBuffer
 
 class AbstractReinforcementLearningModel:
 
@@ -18,7 +18,7 @@ class AbstractReinforcementLearningModel:
     def update_alpha(self, current_states):
         pass
 
-    def complex_training(self, buffer:, training_params: dict, verbose: bool = False):
+    def complex_training(self, buffer: ReplayBuffer, training_params: dict, verbose: bool = False):
         pass
 
     def save_model(self, model_folder: Path, model_name: str):

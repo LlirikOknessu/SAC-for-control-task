@@ -1,8 +1,8 @@
 import argparse
 import random
-from libs.rl import AbstractReinforcementLearningModel
-from libs.replay_buffer import ReplayBuffer
-from libs.connector import Connector, RealConnector
+from src.libs.rl import AbstractReinforcementLearningModel
+from src.libs.replay_buffer import ReplayBuffer
+from src.libs.connector import Connector, RealConnector
 import pandas as pd
 import time
 import numpy as np
@@ -15,12 +15,13 @@ MOVING_AVERAGE_WINDOW = 100
 
 def parser_args_for_sac():
     parser = argparse.ArgumentParser(description='SAC')
-    parser.add_argument('--model_path', '-mp', type=str, default='data/models/', required=True,
+    parser.add_argument('--model_path', '-mp', type=str, default='data/models/', required=False,
                         help='path to save model')
-    parser.add_argument('--output_history_dir', '-ohd', type=str, default='data/experiment_data/', required=True,
+    parser.add_argument('--output_history_dir', '-ohd', type=str, default='data/experiment_data/', required=False,
                         help='path to save logs of learning')
-    parser.add_argument('params', '-p', types=str, default='params.yaml', required=True,
+    parser.add_argument('--params', '-p', type=str, default='params.yaml', required=False,
                         help='file with dvc stage params')
+    return parser.parse_args()
 
 
 def reward_gauss_normed(y_true: float, y_target: float, scale: int = 1):
@@ -243,9 +244,9 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
     return learning
 
 
-def run_learning(output_path: Path, rl_model: AbstractReinforcementLearningModel, buffer: ReplayBuffer,
-                          additional_params: dict, general_params: dict, neural_network_params: dict,
-                          learning_mode: str):
+def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinforcementLearningModel,
+                 buffer: ReplayBuffer, additional_params: dict, general_params: dict, neural_network_params: dict,
+                 learning_mode: str):
     # Repeat until convergence
     response_dict = {
         'time_c': [],
@@ -298,5 +299,5 @@ def run_learning(output_path: Path, rl_model: AbstractReinforcementLearningModel
             rl_model.save_model(output_path.parent, output_path.name)
         row = {'episode': episode, 'metric': metric, 'episode_reward': episode_reward,
                'moving_average': moving_average, 'y_target': y_target}
-        save_and_add_history(output_path.parent / f'{output_path.name}_dynamic_his.csv', row)
+        save_and_add_history(history_path / f'{history_path.name}_dynamic_his.csv', row)
         episode += 1

@@ -7,8 +7,8 @@ from tensorflow.keras import layers
 from tensorflow.keras import Model
 import numpy as np
 from pathlib import Path
-from libs.rl import AbstractReinforcementLearningModel
-from libs.replay_buffer import ReplayBuffer
+from src.libs.rl import AbstractReinforcementLearningModel
+from src.libs.replay_buffer import ReplayBuffer
 
 tf.keras.backend.set_floatx('float64')
 
@@ -249,7 +249,7 @@ class SoftActorCritic(AbstractReinforcementLearningModel):
         self.critic2_optimizer = tf.keras.optimizers.Adam(lr)
         self.alpha_optimizer = tf.keras.optimizers.Adam(lr)
 
-    def complex_training(self, buffer:, training_params: dict, verbose: bool = False):
+    def complex_training(self, buffer: ReplayBuffer, training_params: dict, verbose: bool = False):
         print('Start training')
         for epoch in range(training_params['epochs']):
             # Randomly sample minibatch of transitions from replay buffer

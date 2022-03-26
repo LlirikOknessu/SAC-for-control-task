@@ -1,11 +1,12 @@
 import socket
 import struct
+from typing import Tuple
 from numpy import random
 import datetime
 
 
 class AbstractConnector:
-    def __init__(self, address: tuple):
+    def __init__(self, address: Tuple[str, int]):
         print('Start')
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind(address)
@@ -24,7 +25,7 @@ class AbstractConnector:
 
 
 class RealConnector(AbstractConnector):
-    def __init__(self, address: tuple):
+    def __init__(self, address: Tuple[str, int]):
         super().__init__(address)
 
     def receive(self, y_target):
@@ -52,8 +53,8 @@ class RealConnector(AbstractConnector):
         self.connection.close()
 
 
-class Connector:
-    def __init__(self, address: tuple):
+class Connector(AbstractConnector):
+    def __init__(self, address: Tuple[str, int]):
         super().__init__(address)
 
     def receive(self):
