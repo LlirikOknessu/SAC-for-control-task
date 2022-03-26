@@ -1,4 +1,6 @@
 sac_params:
+  experiment_params:
+    learning_mode: 'model'
   additional_params:
     seed: 42  # random seed
     env_name: 'BallTube-v1'  # name of the environment with version
@@ -6,7 +8,7 @@ sac_params:
     verbose: 0  # log execution details
     start_steps: 0  # number of global steps before random exploration ends
   general_params:
-    model_name: 'dvc_sac_model_v0' # name of the saved model
+    model_name: 'sac_m_v0' # name of the saved model
     math_model_address: '10.24.1.206'
     math_model_port: 5000
     model_observation: 4

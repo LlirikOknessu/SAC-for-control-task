@@ -2,7 +2,7 @@ import argparse
 import random
 from src.libs.rl import AbstractReinforcementLearningModel
 from src.libs.replay_buffer import ReplayBuffer
-from src.libs.connector import Connector, RealConnector
+from src.libs.connector import Connector, RealConnector, AbstractConnector
 import pandas as pd
 import time
 import numpy as np
@@ -25,12 +25,12 @@ def parser_args_for_sac():
 
 
 def reward_gauss_normed(y_true: float, y_target: float, scale: int = 1):
-    E = y_target - y_true
-    if E < 0:
-        E_norm = E * (1.74 / (1.74 - y_target))
+    e = y_target - y_true
+    if e < 0:
+        e_norm = e * (1.74 / (1.74 - y_target))
     else:
-        E_norm = E * (1.74 / y_target)
-    reward = 1.26 * math.exp(-5 * (E_norm ** 2)) - 0.63
+        e_norm = e * (1.74 / y_target)
+    reward = 1.26 * math.exp(-5 * (e_norm ** 2)) - 0.63
     reward *= scale
     return reward
 
@@ -45,11 +45,11 @@ def random_float(low, high):
     return random.random() * (high - low) + low
 
 
-def save_step_response(filename: str, time: list, action: list, current: list, position: list,
+def save_step_response(filename: str, time_ms: list, action: list, current: list, position: list,
                        angular_velocity: list, object_velocity: list):
     df = pd.DataFrame([])
     actions_array = np.array(action).squeeze()
-    df = df.assign(time=time)
+    df = df.assign(time=time_ms)
     df = df.assign(action=actions_array)
     df = df.assign(current=current)
     df = df.assign(position=position)
@@ -83,9 +83,8 @@ def passing_between_episodes_on_stand(done: bool, global_step: int, connector: R
 def run_single_episode_on_model(done: bool, global_step: int, flag: int, y_target: float,
                                 rl_model: AbstractReinforcementLearningModel,
                                 buffer: ReplayBuffer, connector: Connector, additional_params: dict,
-                                general_params: dict,
-                                response_dict: dict, y_target_mode: str, verbose: bool = False):
-    current_state = [0 for _ in general_params['model_observation']]
+                                general_params: dict, response_dict: dict, verbose: bool = False):
+    current_state = [0 for _ in range(int(general_params['model_observation']))]
     metric = 0
     step = 1
     episode_reward = 0
@@ -118,7 +117,7 @@ def run_single_episode_on_model(done: bool, global_step: int, flag: int, y_targe
         response_dict['action_list'].append(_[0])
 
         # Set end to 0 if the episode ends otherwise make it 1
-        # although the meaning is opposite but it is just easier to mutiply
+        # although the meaning is opposite but it is just easier to multiply
         # with reward for the last step.
         if done:
             end = 0
@@ -212,7 +211,7 @@ def run_single_episode_on_stand(done: bool, global_step: int, flag: int, y_targe
 
 
 def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dict: dict, episode: int,
-                       learning: bool = True):
+                       full_path: Path, learning: bool = True):
     episode_rewards = history_dict['episode_reward']
 
     avg_episode_reward = sum(episode_rewards[-1000:]) / len(episode_rewards[-1000:])
@@ -224,9 +223,9 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
         print(f"Episode {episode} moving average reward: {moving_average}")
         if moving_average > 60:
             learning = False
-            rl_model.save_model(Path(args.model_path), args.model_name)
+            rl_model.save_model(full_path.parent, full_path.name)
             print('Learning is ended. Best model is saved. \n'
-                  f'Model name is {args.model_name}')
+                  f'Model name is {full_path.name}')
         elif moving_average > 30 * 2:
             rl_model.update_learning_rate(0.0002)
         elif moving_average > 0 * 2:
@@ -244,9 +243,22 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
     return learning
 
 
+def set_connector(general_params: dict, learning_mode: str) -> (AbstractConnector, callable):
+    math_model_full_address = (general_params.get('math_model_address'), general_params.get('math_model_port'))
+    if learning_mode == 'stand':
+        connector = RealConnector(math_model_full_address)
+        episode_executing_function = run_single_episode_on_stand
+    elif learning_mode == 'model':
+        connector = Connector(math_model_full_address)
+        episode_executing_function = run_single_episode_on_model
+    else:
+        raise KeyError('Please check learning mode')
+    return connector, episode_executing_function
+
+
 def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinforcementLearningModel,
                  buffer: ReplayBuffer, additional_params: dict, general_params: dict, neural_network_params: dict,
-                 learning_mode: str):
+                 connector: AbstractConnector, episode_executing_function: callable):
     # Repeat until convergence
     response_dict = {
         'time_c': [],
@@ -268,32 +280,27 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
 
     learning = True
     moving_average = 0
-    if learning_mode == 'stand':
-        connector = RealConnector(general_params['model_address'])
-        do_episode = run_single_episode_on_stand
-    elif learning_mode == 'model':
-        connector = Connector(general_params['model_address'])
-        do_episode = run_single_episode_on_model
-    else:
-        raise KeyError('Please check learning mode')
+
     while learning:
         if general_params['y_target_mode'] == 'fixed':
             y_target = general_params['y_target']
         else:
             y_target = random_float(low=0.2, high=1.4)
-        response_dict, episode_reward, metric, global_step, flag = do_episode(done=done,
-                                                                              global_step=global_step,
-                                                                              flag=flag, y_target=y_target,
-                                                                              rl_model=rl_model,
-                                                                              additional_params=additional_params,
-                                                                              general_params=general_params,
-                                                                              response_dict=response_dict,
-                                                                              buffer=buffer,
-                                                                              connector=connector)
+        response_dict, episode_reward, metric, global_step, flag = episode_executing_function(done=done,
+                                                                                              global_step=global_step,
+                                                                                              flag=flag,
+                                                                                              y_target=y_target,
+                                                                                              rl_model=rl_model,
+                                                                                              additional_params=additional_params,
+                                                                                              general_params=general_params,
+                                                                                              response_dict=response_dict,
+                                                                                              buffer=buffer,
+                                                                                              connector=connector)
         history_dict['episode_reward'].append(episode_reward)
         history_dict['metric'].append(metric)
         history_dict['y_target'].append(y_target)
-        learning = compute_statistics(rl_model=rl_model, history_dict=history_dict, episode=episode, learning=learning)
+        learning = compute_statistics(rl_model=rl_model, history_dict=history_dict, episode=episode, learning=learning,
+                                      full_path=output_path)
         rl_model.complex_training(buffer=buffer, training_params=neural_network_params)
         if episode % 15 == 0:
             rl_model.save_model(output_path.parent, output_path.name)
