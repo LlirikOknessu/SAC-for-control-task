@@ -11,3 +11,14 @@ stages:
       - data/models/simulated/${sac_params.general_params.model_name}
     params:
       - sac_params
+  run_sac_on_model_with parametric_sweep:
+    cmd: python sac_run_with_param_sweep.py -mp data/models/simulated/single_experiment/${sac_params.general_params.model_name} -ohd data/experiment_data/simulated/${sac_params.general_params.model_name} -p params.yaml
+    deps:
+      - sac_run.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/experiment_data/${sac_params.general_params.model_name}
+      - data/models/simulated/${sac_params.general_params.model_name}
+    params:
+      - sac_params

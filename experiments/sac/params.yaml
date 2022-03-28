@@ -23,6 +23,15 @@ sac_params:
     gamma: 0.9  # discount factor for future rewards
     polyak: 0.005  # coefficient for polyak averaging of Q network weights
     learning_rate: 0.005
+param_sweep:
+  episode_limit: 10000
+  sweep:
+    layer_size: [32, 64, 128, 256]
+    batch_size: [32, 64, 128, 256]
+    epochs: [10, 25, 40]
+    learning_rate: [0.001, 0.0005, 0.0003, 0.0001]
+
+
 
 
 

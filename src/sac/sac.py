@@ -21,11 +21,11 @@ INPUT_SIGNATURE = [tf.TensorSpec(shape=None, dtype=tf.float64),
 
 class Actor(Model):
 
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, layer_size: int = 256):
         super().__init__()
         self.action_dim = action_dim
-        self.dense1_layer = layers.Dense(256, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(layer_size, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(layer_size, activation=tf.nn.relu)
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
@@ -70,10 +70,10 @@ class Actor(Model):
 
 class Critic(Model):
 
-    def __init__(self):
+    def __init__(self, layer_size: int = 256):
         super().__init__()
-        self.dense1_layer = layers.Dense(256, activation=tf.nn.relu)
-        self.dense2_layer = layers.Dense(256, activation=tf.nn.relu)
+        self.dense1_layer = layers.Dense(layer_size, activation=tf.nn.relu)
+        self.dense2_layer = layers.Dense(layer_size, activation=tf.nn.relu)
         self.output_layer = layers.Dense(1)
 
     @tensorflow.function
@@ -93,13 +93,13 @@ class Critic(Model):
 class SoftActorCritic(AbstractReinforcementLearningModel):
 
     def __init__(self, action_dim, epoch_step=1, learning_rate=0.0003,
-                 alpha=0.2, gamma=0.99,
+                 alpha=0.2, gamma=0.99, layer_size=256,
                  polyak=0.995):
-        self.policy = Actor(action_dim)
-        self.q1 = Critic()
-        self.q2 = Critic()
-        self.target_q1 = Critic()
-        self.target_q2 = Critic()
+        self.policy = Actor(action_dim, layer_size=layer_size)
+        self.q1 = Critic(layer_size=layer_size)
+        self.q2 = Critic(layer_size=layer_size)
+        self.target_q1 = Critic(layer_size=layer_size)
+        self.target_q2 = Critic(layer_size=layer_size)
 
         self.epoch_step = epoch_step
 

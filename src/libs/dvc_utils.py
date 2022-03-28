@@ -15,9 +15,11 @@ MOVING_AVERAGE_WINDOW = 100
 
 def parser_args_for_sac():
     parser = argparse.ArgumentParser(description='SAC')
-    parser.add_argument('--model_path', '-mp', type=str, default='data/models/', required=False,
+    parser.add_argument('--model_path', '-mp', type=str, default='data/models/simulated/sweep_experiment/',
+                        required=False,
                         help='path to save model')
-    parser.add_argument('--output_history_dir', '-ohd', type=str, default='data/experiment_data/', required=False,
+    parser.add_argument('--output_history_dir', '-ohd', type=str, default='data/experiment_data/sweep_exp/',
+                        required=False,
                         help='path to save logs of learning')
     parser.add_argument('--params', '-p', type=str, default='params.yaml', required=False,
                         help='file with dvc stage params')
@@ -211,7 +213,7 @@ def run_single_episode_on_stand(done: bool, global_step: int, flag: int, y_targe
 
 
 def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dict: dict, episode: int,
-                       full_path: Path, learning: bool = True):
+                       full_path: Path, learning: bool = True, episode_limit: int = np.inf):
     episode_rewards = history_dict['episode_reward']
 
     avg_episode_reward = sum(episode_rewards[-1000:]) / len(episode_rewards[-1000:])
@@ -221,6 +223,13 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
     if len(episode_rewards) > MOVING_AVERAGE_WINDOW:
         moving_average = sum(episode_rewards[-MOVING_AVERAGE_WINDOW:]) / MOVING_AVERAGE_WINDOW
         print(f"Episode {episode} moving average reward: {moving_average}")
+        if episode > episode_limit:
+            learning = False
+            rl_model.save_model(full_path.parent, full_path.name)
+            print('***** Episode limit is reached! ***** \n'
+                  '#####################################\n'
+                  'Learning is ended. Best model is saved. \n'
+                  f'Model name is {full_path.name}')
         if moving_average > 60:
             learning = False
             rl_model.save_model(full_path.parent, full_path.name)
@@ -258,8 +267,11 @@ def set_connector(general_params: dict, learning_mode: str) -> (AbstractConnecto
 
 def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinforcementLearningModel,
                  buffer: ReplayBuffer, additional_params: dict, general_params: dict, neural_network_params: dict,
-                 connector: AbstractConnector, episode_executing_function: callable):
+                 connector: AbstractConnector, episode_executing_function: callable, training_params=None,
+                 episode_limit: int = np.inf):
     # Repeat until convergence
+    if training_params is None:
+        training_params = neural_network_params
     response_dict = {
         'time_c': [],
         'action_list': [],
@@ -300,8 +312,8 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
         history_dict['metric'].append(metric)
         history_dict['y_target'].append(y_target)
         learning = compute_statistics(rl_model=rl_model, history_dict=history_dict, episode=episode, learning=learning,
-                                      full_path=output_path)
-        rl_model.complex_training(buffer=buffer, training_params=neural_network_params)
+                                      full_path=output_path, episode_limit=episode_limit)
+        rl_model.complex_training(buffer=buffer, training_params=training_params)
         if episode % 15 == 0:
             rl_model.save_model(output_path.parent, output_path.name)
         row = {'episode': episode, 'metric': metric, 'episode_reward': episode_reward,
