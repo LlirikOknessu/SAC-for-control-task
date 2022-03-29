@@ -23,6 +23,9 @@ class AbstractConnector:
     def close(self):
         pass
 
+    def reset_simulation(self, simulation_transfer: int):
+        pass
+
 
 class RealConnector(AbstractConnector):
     def __init__(self, address: Tuple[str, int]):

@@ -74,8 +74,10 @@ if __name__ == '__main__':
                      neural_network_params=neural_network_params, connector=connector,
                      episode_executing_function=do_episode, episode_limit=episode_limit,
                      training_params={'epochs': param_sample.get('epochs'),
-                                      'batch_size': param_sample.get('batch_size')})
+                                      'batch_size': param_sample.get('batch_size')},
+                     experiment_params=experiment_params)
 
         del sac
-        connector.reset_simulation(simulation_transfer=int(experiment_params.get('simulation_time') / general_params.get('discretization_step')))
+        connector.reset_simulation(simulation_transfer=int(
+            2 * (experiment_params.get('simulation_time') / general_params.get('discretization_step'))))
     print('EXPERIMENTS ENDED')
