@@ -54,11 +54,8 @@ if __name__ == '__main__':
 
     for num, param_sample in enumerate(params_grid):
         # set sweep path
-        sweep_path = full_path.parent / (full_path.name + f'_{num}')
-        sweep_history_path = history_path.parent / (history_path.name + f'_{num}')
-
-        sweep_path.mkdir(exist_ok=True, parents=True)
-        sweep_history_path.mkdir(exist_ok=True, parents=True)
+        sweep_path = full_path / (full_path.name + f'_{num}')
+        sweep_history_path = history_path / (history_path.name + f'_{num}')
 
         # Initialize Replay buffer.
         replay = ReplayBuffer(state_space, action_space)
@@ -69,12 +66,16 @@ if __name__ == '__main__':
                               learning_rate=param_sample['learning_rate'],
                               gamma=neural_network_params['gamma'], polyak=neural_network_params['polyak'])
 
-        if sweep_path.exists():
-            sac.load_model(model_name=sweep_path.parent.name, model_folder=sweep_path.parent)
+        sweep_path.mkdir(exist_ok=True, parents=True)
+        sweep_history_path.mkdir(exist_ok=True, parents=True)
 
         run_learning(output_path=sweep_path, history_path=sweep_history_path, rl_model=sac, buffer=replay,
                      additional_params=additional_params, general_params=general_params,
                      neural_network_params=neural_network_params, connector=connector,
-                     episode_executing_function=do_episode,
+                     episode_executing_function=do_episode, episode_limit=episode_limit,
                      training_params={'epochs': param_sample.get('epochs'),
                                       'batch_size': param_sample.get('batch_size')})
+
+        del sac
+        connector.reset_simulation(simulation_transfer=int(experiment_params.get('simulation_time') / general_params.get('discretization_step')))
+    print('EXPERIMENTS ENDED')

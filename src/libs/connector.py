@@ -66,6 +66,11 @@ class Connector(AbstractConnector):
         # print(state)
         return state, metric, y_target, int(done)
 
+    def reset_simulation(self, simulation_transfer: int):
+        for step in range(simulation_transfer):
+            self.step(0.1)
+            _, _, _, _ = self.receive()
+
     def step(self, action):
         # print(float(action))
         self.connection.send(struct.pack('d', float(action)))

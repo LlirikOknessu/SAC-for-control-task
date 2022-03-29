@@ -1,6 +1,7 @@
 sac_params:
   experiment_params:
     learning_mode: 'model'
+    simulation_time: 30.3
   additional_params:
     seed: 42  # random seed
     env_name: 'BallTube-v1'  # name of the environment with version

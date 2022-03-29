@@ -210,6 +210,13 @@ class SoftActorCritic(AbstractReinforcementLearningModel):
         variables = [self.alpha]
         grads = tape.gradient(alpha_loss, variables)
         self.alpha_optimizer.apply_gradients(zip(grads, variables))
+        if self.alpha.value() == np.nan:
+            print("Alpha is None")
+            print('alpha_loss  ', alpha_loss)
+            print('current_states  ', current_states)
+            print('pi_a  ', pi_a)
+            print('log_pi_a  ', log_pi_a)
+            self.alpha.assign(EPSILON + random.uniform(0.0005, 0.1))
         if self.alpha.value() <= 0:
             self.alpha.assign(EPSILON + random.uniform(0.0005, 0.1))
 

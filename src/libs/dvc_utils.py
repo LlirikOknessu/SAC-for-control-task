@@ -220,16 +220,18 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
 
     print(f"Episode {episode} reward: {episode_rewards[-1] / 1}")
     print(f"{episode} Average episode reward: {avg_episode_reward / 1}")
+    if episode > episode_limit:
+        learning = False
+        rl_model.save_model(full_path.parent, full_path.name)
+        print('***** Episode limit is reached! ***** \n'
+              '#####################################\n'
+              'Learning is ended. Best model is saved. \n'
+              f'Model name is {full_path.name}')
+
     if len(episode_rewards) > MOVING_AVERAGE_WINDOW:
         moving_average = sum(episode_rewards[-MOVING_AVERAGE_WINDOW:]) / MOVING_AVERAGE_WINDOW
         print(f"Episode {episode} moving average reward: {moving_average}")
-        if episode > episode_limit:
-            learning = False
-            rl_model.save_model(full_path.parent, full_path.name)
-            print('***** Episode limit is reached! ***** \n'
-                  '#####################################\n'
-                  'Learning is ended. Best model is saved. \n'
-                  f'Model name is {full_path.name}')
+
         if moving_average > 60:
             learning = False
             rl_model.save_model(full_path.parent, full_path.name)
