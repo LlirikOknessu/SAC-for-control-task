@@ -213,7 +213,8 @@ def run_single_episode_on_stand(done: bool, global_step: int, flag: int, y_targe
 
 
 def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dict: dict, episode: int,
-                       full_path: Path, learning: bool = True, episode_limit: int = np.inf):
+                       full_path: Path, learning: bool = True, episode_limit: int = np.inf,
+                       stop_criteria: int = 100):
     episode_rewards = history_dict['episode_reward']
 
     avg_episode_reward = sum(episode_rewards[-1000:]) / len(episode_rewards[-1000:])
@@ -232,7 +233,7 @@ def compute_statistics(rl_model: AbstractReinforcementLearningModel, history_dic
         moving_average = sum(episode_rewards[-MOVING_AVERAGE_WINDOW:]) / MOVING_AVERAGE_WINDOW
         print(f"Episode {episode} moving average reward: {moving_average}")
 
-        if moving_average > 60:
+        if moving_average > stop_criteria:
             learning = False
             rl_model.save_model(full_path.parent, full_path.name)
             print('Learning is ended. Best model is saved. \n'
@@ -314,7 +315,8 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
         history_dict['metric'].append(metric)
         history_dict['y_target'].append(y_target)
         learning = compute_statistics(rl_model=rl_model, history_dict=history_dict, episode=episode, learning=learning,
-                                      full_path=output_path, episode_limit=episode_limit)
+                                      full_path=output_path, episode_limit=episode_limit,
+                                      stop_criteria=experiment_params.get('stop_criteria', 100))
         rl_model.complex_training(buffer=buffer, training_params=training_params)
         if episode % 15 == 0:
             rl_model.save_model(output_path.parent, output_path.name)
