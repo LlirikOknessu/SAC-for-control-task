@@ -1,5 +1,7 @@
 from src.libs.plot_utils import load_history, plot_moving_average_reward, plot_metric
 import argparse
+import yaml
+from pathlib import Path
 
 
 def history_parser():
@@ -27,8 +29,11 @@ if __name__ == '__main__':
     experiment_params = params_all['sac_params'].get('experiment_params')
     param_sweep = params_all['param_sweep']
 
-    for filename, df in load_history(data_path=args.history_dir):
-        plot_moving_average_reward(dataframe=df, filename=filename.name, output_dir=args.plots_dir, title='Moving average',
+    plots_dir = Path(args.plots_dir)
+    plots_dir.mkdir(exist_ok=True, parents=True)
+
+    for filename, df in load_history(data_path=Path(args.history_dir)):
+        plot_moving_average_reward(dataframe=df, filename=filename.name, output_dir=plots_dir, title='Moving average',
                                    xlabel='Episode', ylabel='Moving average reward')
-        plot_metric(dataframe=df, filename=filename.name, output_dir=args.plots_dir, title='Metric',
+        plot_metric(dataframe=df, filename=filename.name, output_dir=plots_dir, title='Metric',
                                    xlabel='Episode', ylabel='Metric')

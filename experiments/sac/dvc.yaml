@@ -24,13 +24,13 @@ stages:
       - sac_params
       - param_sweep
   plot_parametric_sweep:
-    cmd: python plot_history.py -hd data/models/simulated/sweep/ -pd data/models/simulated/plots/ -p params.yaml
+    cmd: python plot_history.py -hd data/experiment_data/simulated/sweep/ -pd data/experiment_data/simulated/plots/sweep/ -p params.yaml
     deps:
       - plot_history.py
       - params.yaml
       - ../../src/libs/
+      - data/experiment_data/simulated/sweep/
     outs:
-      - data/experiment_data/${sac_params.general_params.model_name}
-      - data/models/simulated/${sac_params.general_params.model_name}
+      - data/experiment_data/simulated/plots/sweep/
     params:
       - sac_params

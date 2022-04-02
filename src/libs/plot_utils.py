@@ -5,8 +5,8 @@ from typing import Generator, Tuple
 import pandas as pd
 
 
-def load_history(data_path: Path) -> Tuple[Path, (Generator, None, None)]:
-    for file in data_path.glob("*_dynamic_his.csv"):
+def load_history(data_path: Path) -> Tuple[Path, Tuple[Generator, None, None]]:
+    for file in data_path.rglob("*_dynamic_his.csv"):
         yield file, pd.read_csv(file)
 
 
@@ -19,6 +19,7 @@ def plot_moving_average_reward(dataframe: pd.DataFrame, filename: str, output_di
     ax.legend()
     plt.title(label=title)
     ax.set(ylabel=ylabel, xlabel=xlabel)
+    plt.grid()
     fig.savefig(output_dir / filename.replace('_dynamic_his.csv', 'mv_avg_plot.jpg'))
     plt.close(fig)
 
@@ -32,5 +33,6 @@ def plot_metric(dataframe: pd.DataFrame, filename: str, output_dir: Path, ylabel
     ax.legend()
     plt.title(label=title)
     ax.set(ylabel=ylabel, xlabel=xlabel)
+    plt.grid()
     fig.savefig(output_dir / filename.replace('_dynamic_his.csv', 'metric_plot.jpg'))
     plt.close(fig)
