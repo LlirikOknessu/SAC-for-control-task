@@ -1,0 +1,25 @@
+stages:
+  run_dqn_on_model_single_experiment:
+    # Runs "Deep-Q-Network" algorithm on math model
+    cmd: python dqn_run.py -mp data/models/simulated/single_experiment/${dqn_params.general_params.model_name} -ohd data/experiment_data/simulated/${dqn_params.general_params.model_name} -p params.yaml
+    deps:
+      - dqn_run.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/experiment_data/${dqn_params.general_params.model_name}
+      - data/models/simulated/${dqn_params.general_params.model_name}
+    params:
+      - dqn_params
+  run_dqn_on_model_with_parametric_sweep:
+    cmd: python dqn_run_with_param_sweep.py -mp data/models/simulated/sweep_experiment/${dqn_params.general_params.model_name} -ohd data/experiment_data/simulated/sweep/${dqn_params.general_params.model_name} -p params.yaml
+    deps:
+      - dqn_run.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/models/simulated/sweep_experiment/${dqn_params.general_params.model_name}
+      - data/experiment_data/simulated/sweep/${dqn_params.general_params.model_name}
+    params:
+      - dqn_params
+      - param_sweep
