@@ -23,6 +23,9 @@ def parser_args_for_sac():
                         help='path to save logs of learning')
     parser.add_argument('--params', '-p', type=str, default='params.yaml', required=False,
                         help='file with dvc stage params')
+    parser.add_argument('--input_model_path', '-imp', type=str, default='data/models/simulated/sweep_experiment/',
+                        required=False,
+                        help='path to load model')
     return parser.parse_args()
 
 
@@ -324,6 +327,9 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
                'moving_average': moving_average, 'y_target': y_target}
         save_and_add_history(history_path / f'{history_path.name}_dynamic_his.csv', row)
         episode += 1
+        if experiment_params.get('learning_mode') == 'stand':
+            flag = passing_between_episodes_on_stand(done=done, connector=connector, flag=flag, y_target=y_target,
+                                                     global_step=global_step)
         if experiment_params is not None:
             connector.reset_simulation(simulation_transfer=int(
                 2 * (experiment_params.get('simulation_time') / general_params.get('discretization_step'))))

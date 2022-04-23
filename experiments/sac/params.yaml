@@ -25,6 +25,35 @@ sac_params:
     gamma: 0.9  # discount factor for future rewards
     polyak: 0.005  # coefficient for polyak averaging of Q network weights
     learning_rate: 0.005
+
+  sac_stand_params:
+    experiment_params:
+      learning_mode: 'stand'
+      simulation_time: 30.3
+      stop_criteria: 100
+    additional_params:
+      seed: 42  # random seed
+      env_name: 'BallTube-v1'  # name of the environment with version
+      render: 0  # set gym environment to render display
+      verbose: 0  # log execution details
+      start_steps: 0  # number of global steps before random exploration ends
+    general_params:
+      model_name: 'sac_m_v0_new_logic' # name of the saved model
+      math_model_address: '10.24.1.206'
+      math_model_port: 5000
+      model_observation: 4
+      model_action_space: 1
+      discretization_step: 0.1
+      y_target_mode: 'fixed'
+      y_target: 0.8
+      MOVING_AVERAGE_WINDOW: 100
+    neural_network_params:
+      batch_size: 256  # minibatch sample size for training
+      epochs: 40  # number of epochs to run backprop in an episode
+      gamma: 0.9  # discount factor for future rewards
+      polyak: 0.005  # coefficient for polyak averaging of Q network weights
+      learning_rate: 0.005
+
 param_sweep:
   episode_limit: 10000
   sweep:

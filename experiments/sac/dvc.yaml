@@ -34,3 +34,15 @@ stages:
       - data/experiment_data/simulated/plots/sweep/
     params:
       - sac_params
+  run_sac_on_stand_with_parametric_sweep:
+    cmd: python sac_stand_run_with_param_sweep.py -imp data/models/real/sweep_experiment/${sac_params.general_params.model_name} -mp data/models/real/sweep_experiment/${sac_params.general_params.model_name} -ohd data/experiment_data/real/sweep/${sac_params.general_params.model_name} -p params.yaml
+    deps:
+      - sac_stand_run_with_param_sweep.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/models/real/sweep_experiment/${sac_params.general_params.model_name}
+      - data/experiment_data/real/sweep/${sac_params.general_params.model_name}
+    params:
+      - sac_stand_params
+      - param_sweep
