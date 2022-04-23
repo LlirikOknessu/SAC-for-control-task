@@ -2,6 +2,7 @@ sac_params:
   experiment_params:
     learning_mode: 'model'
     simulation_time: 30.3
+    stop_criteria: 100
   additional_params:
     seed: 42  # random seed
     env_name: 'BallTube-v1'  # name of the environment with version
@@ -9,7 +10,7 @@ sac_params:
     verbose: 0  # log execution details
     start_steps: 0  # number of global steps before random exploration ends
   general_params:
-    model_name: 'sac_m_v0' # name of the saved model
+    model_name: 'sac_m_v1' # name of the saved model
     math_model_address: '10.24.1.206'
     math_model_port: 5000
     model_observation: 4
@@ -28,9 +29,9 @@ param_sweep:
   episode_limit: 10000
   sweep:
     layer_size: [32, 64, 128, 256]
-    batch_size: [32, 64, 128, 256]
-    epochs: [10, 25, 40]
-    learning_rate: [0.001, 0.0005, 0.0003, 0.0001]
+    batch_size: [256, 128, 64]
+    epochs: [40]
+    learning_rate: [0.0003]
 
 
 
