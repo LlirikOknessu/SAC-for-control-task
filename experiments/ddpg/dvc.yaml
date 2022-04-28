@@ -1,0 +1,25 @@
+stages:
+  run_ddpg_on_model_single_experiment:
+    # Runs "Deep Deterministic Policy Gradient" algorithm on math model
+    cmd: python ddpg_run.py -mp data/models/simulated/single_experiment/${ddpg_params.general_params.model_name} -ohd data/experiment_data/simulated/${ddpg_params.general_params.model_name} -p params.yaml
+    deps:
+      - ddpg_run.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/experiment_data/${ddpg_params.general_params.model_name}
+      - data/models/simulated/${ddpg_params.general_params.model_name}
+    params:
+      - ddpg_params
+  run_ddpg_on_model_with_parametric_sweep:
+    cmd: python ddpg_run_with_param_sweep.py -mp data/models/simulated/sweep_experiment/${ddpg_params.general_params.model_name} -ohd data/experiment_data/simulated/sweep/${ddpg_params.general_params.model_name} -p params.yaml
+    deps:
+      - ddpg_run.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/models/simulated/sweep_experiment/${ddpg_params.general_params.model_name}
+      - data/experiment_data/simulated/sweep/${ddpg_params.general_params.model_name}
+    params:
+      - ddpg_params
+      - param_sweep
