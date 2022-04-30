@@ -50,6 +50,6 @@ class ActorNetwork(keras.Model):
         prob = self.fc1(state)
         prob = self.fc2(prob)
 
-        mu = self.mu(prob)
+        mu = 5*(self.mu(prob))+5
 
         return mu

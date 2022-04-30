@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
         # Initialize policy and Q-function parameters.
 
-        ddpg = DDPG(alpha=neural_network_params['alpha'], beta=neural_network_params['alpha'], batch_size=param_sample['batch_size'], input_dims=param_sample['input_dims'])
+        ddpg = DDPG(alpha=neural_network_params['alpha'], beta=neural_network_params['beta'], batch_size=neural_network_params['batch_size'])
 
         sweep_path.mkdir(exist_ok=True, parents=True)
         sweep_history_path.mkdir(exist_ok=True, parents=True)

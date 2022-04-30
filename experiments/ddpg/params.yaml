@@ -21,9 +21,9 @@ ddpg_params:
   neural_network_params:
     batch_size: 256  # minibatch sample size for training
     gamma: 0.9  # discount factor for future rewards
-    alpha: 0.001
-    beta: 0.002
-    tau: 0.005
+    alpha: 0.001 # learning rate for actor
+    beta: 0.002 # learning rate for critic
+    tau: 0.005 # soft update both actor and critic
     noise: 0.1
 param_sweep:
   episode_limit: 10000

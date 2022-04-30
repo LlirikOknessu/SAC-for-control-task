@@ -77,7 +77,7 @@ class DDPG(AbstractReinforcementLearningModel):
 
         return actions[0]
 
-    def learn(self):
+    def train(self):
         if self.memory.total_size < self.batch_size:
             return
 
