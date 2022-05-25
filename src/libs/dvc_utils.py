@@ -9,6 +9,7 @@ import numpy as np
 import math
 import logging
 from pathlib import Path
+from src.libs.validation_utils import ResponseDict, save_step_response
 
 MOVING_AVERAGE_WINDOW = 100
 
@@ -262,7 +263,7 @@ def set_connector(general_params: dict, learning_mode: str) -> (AbstractConnecto
 def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinforcementLearningModel,
                  buffer: ReplayBuffer, additional_params: dict, general_params: dict, neural_network_params: dict,
                  connector: AbstractConnector, episode_executing_function: callable, training_params=None,
-                 episode_limit: int = np.inf, experiment_params=None):
+                 episode_limit: int = np.inf, experiment_params=None, write_response: bool = False):
     # Repeat until convergence
     if training_params is None:
         training_params = neural_network_params
@@ -286,6 +287,7 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
 
     learning = True
     moving_average = 0
+    response_count = 0
 
     while learning:
         if general_params['y_target_mode'] == 'fixed':
@@ -314,6 +316,10 @@ def run_learning(output_path: Path, history_path: Path, rl_model: AbstractReinfo
         row = {'episode': episode, 'metric': metric, 'episode_reward': episode_reward,
                'moving_average': moving_average, 'y_target': y_target}
         save_and_add_history(history_path / f'{history_path.name}_dynamic_his.csv', row)
+        if write_response:
+            save_step_response(file_path=history_path / f'{history_path.name}{response_count}',
+                               response_dict=ResponseDict().from_dict(response_dict=response_dict))
+
         episode += 1
         if experiment_params is not None:
             connector.reset_simulation(simulation_transfer=int(

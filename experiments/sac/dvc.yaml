@@ -34,3 +34,15 @@ stages:
       - data/experiment_data/simulated/plots/sweep/
     params:
       - sac_params
+  sac_response_curves_measurement:
+    cmd: sac_response_curves_measurement.py -mp data/models/simulated/sweep_experiment/${sac_params.general_params.model_name} -ohd data/experiment_data/simulated/resp_sweep/${sac_params.general_params.model_name} -p params.yaml
+    deps:
+      - sac_response_curves_measurement.py
+      - params.yaml
+      - ../../src/libs/
+    outs:
+      - data/models/simulated/resp_sweep/${sac_params.general_params.model_name}
+      - data/experiment_data/simulated/resp_sweep/${sac_params.general_params.model_name}
+    params:
+      - sac_params
+      - param_sweep

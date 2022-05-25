@@ -2,7 +2,8 @@ sac_params:
   experiment_params:
     learning_mode: 'model'
     simulation_time: 30.3
-    stop_criteria: 100
+    stop_criteria: 200
+    write_response: 1
   additional_params:
     seed: 42  # random seed
     env_name: 'BallTube-v1'  # name of the environment with version
@@ -26,7 +27,7 @@ sac_params:
     polyak: 0.005  # coefficient for polyak averaging of Q network weights
     learning_rate: 0.005
 param_sweep:
-  episode_limit: 10000
+  episode_limit: 15
   sweep:
     layer_size: [32, 64, 128, 256]
     batch_size: [256, 128, 64]
