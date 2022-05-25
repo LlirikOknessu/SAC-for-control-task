@@ -32,7 +32,7 @@ if __name__ == '__main__':
     replay = ReplayBuffer(state_space, action_space)
 
     # Initialize policy and Q-function parameters.
-    ddpg = DDPG(alpha=neural_network_params['alpha'], beta=neural_network_params['beta'], batch_size=general_params['batch_size'])
+    ddpg = DDPG(alpha=neural_network_params['alpha'], beta=neural_network_params['beta'], batch_size=general_params['batch_size'], input_dims=general_params['model_observation'])
     # / general_params['model_name']
     full_path = Path(args.model_path)
     history_path = Path(args.output_history_dir)

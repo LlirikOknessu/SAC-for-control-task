@@ -7,9 +7,9 @@ ddpg_params:
     env_name: 'BallTube-v1'  # name of the environment with version
     render: 0  # set gym environment to render display
     verbose: 0  # log execution details
-    start_steps: 0  # number of global steps before random exploration ends
+    start_steps: 50  # number of global steps before random exploration ends
   general_params:
-    model_name: 'sac_m_v0' # name of the saved model
+    model_name: 'ddpgm_v0' # name of the saved model
     math_model_address: '10.24.1.206'
     math_model_port: 5000
     model_observation: 4
@@ -24,12 +24,12 @@ ddpg_params:
     alpha: 0.001 # learning rate for actor
     beta: 0.002 # learning rate for critic
     tau: 0.005 # soft update both actor and critic
-    noise: 0.1
+    noise: 1
 param_sweep:
   episode_limit: 10000
   sweep:
-    layer_size: [32, 64, 128]
-    batch_size: [32, 64, 128]
-    alpha: [0.001, 0.0005, 0.0003]
-    beta: [0.002, 0.001, 0.0006]
-    epochs: [10, 25, 40]
+    layer_size: [ 32, 64, 128, 256 ]
+    batch_size: [ 256, 128, 64 ]
+    alpha: [0.0003]
+    beta: [0.0006]
+    epochs: [40]

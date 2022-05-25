@@ -25,10 +25,10 @@ if __name__ == '__main__':
     with open(args.params, 'r') as f:
         params_all = yaml.safe_load(f)
 
-    additional_params = params_all['sac_params'].get('additional_params')
-    general_params = params_all['sac_params'].get('general_params')
-    neural_network_params = params_all['sac_params'].get('neural_network_params')
-    experiment_params = params_all['sac_params'].get('experiment_params')
+    additional_params = params_all['ddpg_params'].get('additional_params')
+    general_params = params_all['ddpg_params'].get('general_params')
+    neural_network_params = params_all['ddpg_params'].get('neural_network_params')
+    experiment_params = params_all['ddpg_params'].get('experiment_params')
     param_sweep = params_all['param_sweep']
 
     episode_limit = param_sweep.get('episode_limit', 10000)
@@ -62,7 +62,8 @@ if __name__ == '__main__':
 
         # Initialize policy and Q-function parameters.
 
-        ddpg = DDPG(alpha=neural_network_params['alpha'], beta=neural_network_params['beta'], batch_size=neural_network_params['batch_size'])
+        ddpg = DDPG(alpha=param_sample['alpha'], beta=param_sample['beta'],
+                    batch_size=param_sample['batch_size'], layer_size=param_sample['layer_size'])
 
         sweep_path.mkdir(exist_ok=True, parents=True)
         sweep_history_path.mkdir(exist_ok=True, parents=True)
@@ -76,6 +77,4 @@ if __name__ == '__main__':
                      experiment_params=experiment_params)
 
         del ddpg
-        connector.reset_simulation(simulation_transfer=int(
-            2 * (experiment_params.get('simulation_time') / general_params.get('discretization_step'))))
     print('EXPERIMENTS ENDED')

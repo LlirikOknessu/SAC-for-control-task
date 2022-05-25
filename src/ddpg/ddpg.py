@@ -4,27 +4,25 @@ from tensorflow.keras.optimizers import Adam
 from src.ddpg.ActorCritic import ActorNetwork, CriticNetwork
 from src.libs.replay_buffer import ReplayBuffer
 from src.libs.rl import AbstractReinforcementLearningModel
+from pathlib import Path
+import numpy as np
 
 
 class DDPG(AbstractReinforcementLearningModel):
-    def __init__(self, input_dims, epoch_step=1, alpha=0.001, beta=0.002, env=None,
-                 gamma=0.99, n_actions=2, max_size=1000000, tau=0.005,
-                 fc1=400, fc2=300, batch_size=64, noise=0.1):
+    def __init__(self, epoch_step=1, alpha=0.001, beta=0.002,
+                 gamma=0.99, n_actions=1, tau=0.005, layer_size=256, batch_size=64, noise=0.1):
         self.gamma = gamma
         self.tau = tau
-        self.memory = ReplayBuffer(max_size, input_dims, n_actions)
         self.batch_size = batch_size
         self.n_actions = n_actions
         self.noise = noise
-        self.max_action = env.action_space.high[0]
-        self.min_action = env.action_space.low[0]
         self.epoch_step = epoch_step
 
-        self.actor = ActorNetwork(n_actions=n_actions, name='actor', fc1_dims=400, fc2_dims=300)
-        self.critic = CriticNetwork(name='critic', fc1_dims=400, fc2_dims=300)
+        self.actor = ActorNetwork(n_actions=n_actions, name='actor', fc1_dims=layer_size, fc2_dims=layer_size)
+        self.critic = CriticNetwork(name='critic', fc1_dims=layer_size, fc2_dims=layer_size)
         self.target_actor = ActorNetwork(n_actions=n_actions,
-                                         name='target_actor', fc1_dims=400, fc2_dims=300)
-        self.target_critic = CriticNetwork(name='target_critic', fc1_dims=400, fc2_dims=300)
+                                         name='target_actor', fc1_dims=layer_size, fc2_dims=layer_size)
+        self.target_critic = CriticNetwork(name='target_critic', fc1_dims=layer_size, fc2_dims=layer_size)
 
         self.actor.compile(optimizer=Adam(learning_rate=alpha))
         self.critic.compile(optimizer=Adam(learning_rate=beta))
@@ -49,44 +47,51 @@ class DDPG(AbstractReinforcementLearningModel):
             weights.append(weight * tau + targets[i] * (1 - tau))
         self.target_critic.set_weights(weights)
 
-    def save_model(self):
-        print('... saving models ...')
-        self.actor.save_weights(self.actor.checkpoint_file)
-        self.target_actor.save_weights(self.target_actor.checkpoint_file)
-        self.critic.save_weights(self.critic.checkpoint_file)
-        self.target_critic.save_weights(self.target_critic.checkpoint_file)
+    def save_model(self, model_folder: Path, model_name: str):
+        model_path = model_folder / model_name
+        model_path.mkdir(parents=True, exist_ok=True)
+        tf.saved_model.save(self.actor, str(model_path / 'a.h5'))
+        tf.saved_model.save(self.target_actor, str(model_path / 'ta.h5'))
+        tf.saved_model.save(self.critic, str(model_path / 'c.h5'))
+        tf.saved_model.save(self.target_critic, str(model_path / 'tc.h5'))
 
-    def load_model(self):
-        print('... loading models ...')
-        self.actor.load_weights(self.actor.checkpoint_file)
-        self.target_actor.load_weights(self.target_actor.checkpoint_file)
-        self.critic.load_weights(self.critic.checkpoint_file)
-        self.target_critic.load_weights(self.target_critic.checkpoint_file)
+    def load_model(self, model_folder: Path, model_name: str):
+        model_path = model_folder / model_name
+        self.actor = tf.saved_model.load(str(model_path / 'a.h5'))
+        self.target_actor = tf.saved_model.load(str(model_path / 'ta.h5'))
+        self.critic = tf.saved_model.load(str(model_path / 'c.h5'))
+        self.target_critic = tf.saved_model.load(str(model_path / 'tc.h5'))
 
     def sample_action(self, observation, evaluate=False):
-        state = tf.convert_to_tensor([observation], dtype=tf.float32)
+        state = tf.convert_to_tensor([observation], dtype=tf.float64)
         actions = self.actor(state)
+        if actions == np.nan:
+            print(actions)
+            print('ACTION IS NONE. MODEL DOES NOT CONVERGE!')
         if not evaluate:
             actions += tf.random.normal(shape=[self.n_actions],
-                                        mean=0.0, stddev=self.noise)
+                                        mean=1.0,
+                                        stddev=self.noise,
+                                        dtype=tf.float64)
         # note that if the env has an action > 1, we have to multiply by
         # max action at some point
-        actions = tf.clip_by_value(actions, self.min_action, self.max_action)
+        actions = tf.clip_by_value(t=actions, clip_value_min=0, clip_value_max=10)
 
         return actions[0]
 
-    def train(self, current_states, actions, rewards, next_states, ends,):
+    def train(self, current_states, actions, rewards, next_states, ends):
 
-        current_states = tf.convert_to_tensor(current_states, dtype=tf.float32)
-        next_states = tf.convert_to_tensor(next_states, dtype=tf.float32)
-        rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
-        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
+        current_states = tf.convert_to_tensor(current_states, dtype=tf.float64)
+        next_states = tf.convert_to_tensor(next_states, dtype=tf.float64)
+        rewards = tf.convert_to_tensor(rewards, dtype=tf.float64)
+        actions = tf.convert_to_tensor(actions, dtype=tf.float64)
+        state_action = tf.concat([current_states, actions], axis=1)
 
         with tf.GradientTape() as tape:
             target_actions = self.target_actor(next_states)
-            critic_value_ = tf.squeeze(self.target_critic(
-                next_states, target_actions), 1)
-            critic_value = tf.squeeze(self.critic(current_states, actions), 1)
+            next_state_action = tf.concat([next_states, target_actions], axis=1)
+            critic_value_ = tf.squeeze(self.target_critic(next_state_action), 1)
+            critic_value = tf.squeeze(self.critic(state_action), 1)
             target = rewards + self.gamma * critic_value_ * (1 - ends)
             critic_loss = keras.losses.MSE(target, critic_value)
 
@@ -97,7 +102,8 @@ class DDPG(AbstractReinforcementLearningModel):
 
         with tf.GradientTape() as tape:
             new_policy_actions = self.actor(current_states)
-            actor_loss = -self.critic(current_states, new_policy_actions)
+            new_state_actions = tf.concat([current_states, new_policy_actions], axis=1)
+            actor_loss = -self.critic(new_state_actions)
             actor_loss = tf.math.reduce_mean(actor_loss)
 
         actor_network_gradient = tape.gradient(actor_loss,
