@@ -47,19 +47,6 @@ def random_float(low, high):
     return random.random() * (high - low) + low
 
 
-def save_step_response(filename: str, time_ms: list, action: list, current: list, position: list,
-                       angular_velocity: list, object_velocity: list):
-    df = pd.DataFrame([])
-    actions_array = np.array(action).squeeze()
-    df = df.assign(time=time_ms)
-    df = df.assign(action=actions_array)
-    df = df.assign(current=current)
-    df = df.assign(position=position)
-    df = df.assign(angular_velocity=angular_velocity)
-    df = df.assign(object_velocity=object_velocity)
-    df.to_csv(f'data/{filename}', index=False)
-
-
 def save_and_add_history(out_history: Path, row: dict):
     if not out_history.exists():
         row = {key: [item] for key, item in row.items()}
@@ -93,7 +80,7 @@ def run_single_episode_on_model(done: bool, global_step: int, flag: int, y_targe
     t0 = time.perf_counter()
     while not done:
         if global_step < additional_params['start_steps']:
-            if np.random.uniform() > 0.8:
+            if np.random.uniform() > 0.7:
                 action = random_float(0, 10)
             else:
                 action = rl_model.sample_action(current_state)
@@ -109,14 +96,18 @@ def run_single_episode_on_model(done: bool, global_step: int, flag: int, y_targe
         reward = reward_gauss(y_true=y_true, y_target=y_target)
 
         episode_reward += reward
-        _ = action.numpy()
+        if isinstance(action, float):
+            pass
+        else:
+            _ = action.numpy()
+            action = _[0]
 
         response_dict['current'].append(next_state[0])
         response_dict['position'].append(y_true)
         response_dict['angular_velocity'].append(next_state[2])
         response_dict['object_velocity'].append(next_state[3])
         response_dict['time_c'].append(t)
-        response_dict['action_list'].append(_[0])
+        response_dict['action_list'].append(action)
 
         # Set end to 0 if the episode ends otherwise make it 1
         # although the meaning is opposite but it is just easier to multiply
