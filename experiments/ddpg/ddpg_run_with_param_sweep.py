@@ -7,7 +7,7 @@ import tensorflow as tf
 from pathlib import Path
 
 from src.libs.dvc_utils import parser_args_for_sac, run_learning, set_connector
-from src.dqn.dqn import DQN
+from src.ddpg.ddpg import DDPG
 from src.libs.replay_buffer import ReplayBuffer
 from sklearn.model_selection import ParameterGrid
 
@@ -25,10 +25,10 @@ if __name__ == '__main__':
     with open(args.params, 'r') as f:
         params_all = yaml.safe_load(f)
 
-    additional_params = params_all['sac_params'].get('additional_params')
-    general_params = params_all['sac_params'].get('general_params')
-    neural_network_params = params_all['sac_params'].get('neural_network_params')
-    experiment_params = params_all['sac_params'].get('experiment_params')
+    additional_params = params_all['ddpg_params'].get('additional_params')
+    general_params = params_all['ddpg_params'].get('general_params')
+    neural_network_params = params_all['ddpg_params'].get('neural_network_params')
+    experiment_params = params_all['ddpg_params'].get('experiment_params')
     param_sweep = params_all['param_sweep']
 
     episode_limit = param_sweep.get('episode_limit', 10000)
@@ -62,13 +62,13 @@ if __name__ == '__main__':
 
         # Initialize policy and Q-function parameters.
 
-        dqn = DQN(lr=neural_network_params['lr'], batch_size=param_sample['batch_size'], epsilon=neural_network_params['epsilon'],
-                  gamma=neural_network_params['gamma'], input_dims=param_sample['input_dims'], n_actions=action_space)
+        ddpg = DDPG(alpha=param_sample['alpha'], beta=param_sample['beta'],
+                    batch_size=param_sample['batch_size'], layer_size=param_sample['layer_size'])
 
         sweep_path.mkdir(exist_ok=True, parents=True)
         sweep_history_path.mkdir(exist_ok=True, parents=True)
 
-        run_learning(output_path=sweep_path, history_path=sweep_history_path, rl_model=dqn, buffer=replay,
+        run_learning(output_path=sweep_path, history_path=sweep_history_path, rl_model=ddpg, buffer=replay,
                      additional_params=additional_params, general_params=general_params,
                      neural_network_params=neural_network_params, connector=connector,
                      episode_executing_function=do_episode, episode_limit=episode_limit,
@@ -76,7 +76,5 @@ if __name__ == '__main__':
                                       'batch_size': param_sample.get('batch_size')},
                      experiment_params=experiment_params)
 
-        del dqn
-        connector.reset_simulation(simulation_transfer=int(
-            2 * (experiment_params.get('simulation_time') / general_params.get('discretization_step'))))
+        del ddpg
     print('EXPERIMENTS ENDED')
